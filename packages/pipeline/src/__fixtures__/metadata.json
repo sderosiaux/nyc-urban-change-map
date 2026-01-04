@@ -1,0 +1,78 @@
+{
+  "description": "NYC Open Data dataset metadata - record counts as of 2025-01",
+  "lastUpdated": "2025-01-04",
+  "datasets": {
+    "dobPermits": {
+      "id": "ipu4-2q9a",
+      "name": "DOB Permit Issuance",
+      "recordCount": 3984103,
+      "status": "active"
+    },
+    "dobNow": {
+      "id": "rbx6-tga4",
+      "name": "DOB NOW: Build – Job Application Filings",
+      "recordCount": 876660,
+      "status": "active"
+    },
+    "dobComplaints": {
+      "id": "eabe-havv",
+      "name": "DOB Complaints Received",
+      "recordCount": 3040490,
+      "status": "active"
+    },
+    "dobViolations": {
+      "id": "3h2n-5cm9",
+      "name": "DOB ECB Violations",
+      "recordCount": 2471387,
+      "status": "active"
+    },
+    "zapProjects": {
+      "id": "hgx4-8ukb",
+      "name": "DCP Zoning Application Portal (ZAP) Projects",
+      "recordCount": 32836,
+      "status": "active"
+    },
+    "capitalProjects": {
+      "id": "h2ic-zdws",
+      "name": "Capital Projects Database (CPDB)",
+      "recordCount": 2602,
+      "status": "active"
+    },
+    "ceqrProjects": {
+      "id": "gezn-7mgk",
+      "name": "CEQR Projects",
+      "recordCount": 15098,
+      "status": "active"
+    },
+    "pluto": {
+      "id": "64uk-42ks",
+      "name": "Primary Land Use Tax Lot Output (PLUTO)",
+      "recordCount": 858284,
+      "status": "active"
+    },
+    "ntas": {
+      "id": "9nt8-h7nd",
+      "name": "2020 Neighborhood Tabulation Areas (NTAs)",
+      "recordCount": 262,
+      "status": "active"
+    },
+    "pad": {
+      "id": "bc8t-ecyu",
+      "name": "Property Address Directory (PAD)",
+      "status": "geospatial-only",
+      "note": "Requires shapefile download, not available via JSON API"
+    },
+    "communityDistricts": {
+      "id": "jp9i-3b7y",
+      "name": "Community Districts",
+      "status": "deprecated",
+      "note": "Dataset not found - may need to use NTA data instead"
+    },
+    "boroughs": {
+      "id": "7t3b-ywvw",
+      "name": "Borough Boundaries",
+      "status": "deprecated",
+      "note": "Dataset not found - boundaries can be derived from NTAs"
+    }
+  }
+}

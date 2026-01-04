@@ -1,0 +1,37 @@
+{
+  "name": "nyc-urban-change-map",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Urban Change Map - Visualize NYC urban transformations",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter @ucm/api run dev",
+    "dev:web": "pnpm --filter @ucm/web run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "test:watch": "pnpm -r --parallel run test --watch",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "db:generate": "pnpm --filter @ucm/pipeline run db:generate",
+    "db:migrate": "pnpm --filter @ucm/pipeline run db:migrate",
+    "db:studio": "pnpm --filter @ucm/pipeline run db:studio",
+    "db:seed": "pnpm --filter @ucm/pipeline run db:seed",
+    "pipeline:ingest": "pnpm --filter @ucm/pipeline run ingest",
+    "pipeline:compute": "pnpm --filter @ucm/pipeline run compute",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.1"
+}
