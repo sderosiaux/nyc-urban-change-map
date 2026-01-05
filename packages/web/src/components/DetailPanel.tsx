@@ -273,173 +273,178 @@ export default function DetailPanel() {
             </div>
 
             {/* Activity Feed / Sources Timeline */}
-            {detail.sources && detail.sources.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-slate-900 mb-4">
-                  Activity ({detail.sources.length})
-                </h3>
-                <div className="relative">
-                  {/* Vertical timeline line */}
-                  <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-slate-200" />
+            {detail.sources && detail.sources.length > 0 && (() => {
+              // Group similar sources by month + type + description
+              type SourceGroup = {
+                key: string;
+                month: string;
+                sourceType: string;
+                description: string;
+                items: typeof detail.sources;
+                officialUrl?: string;
+                agency?: string;
+                projectType?: string;
+              };
 
-                  <div className="space-y-0">
-                    {detail.sources.map((source, index) => (
-                      <div key={index} className="relative flex gap-4 pb-6 last:pb-0">
-                        {/* Timeline dot */}
-                        <div className="relative z-10 flex-shrink-0">
-                          <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-slate-400" />
-                          </div>
-                        </div>
+              const groups: SourceGroup[] = [];
+              const groupMap = new Map<string, SourceGroup>();
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 pt-0.5">
-                          {/* Date and ID row */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                              {source.filedDate ? formatDate(source.filedDate) : 'No date'}
-                            </span>
-                            {source.sourceId && (
-                              <button
-                                onClick={() => navigator.clipboard.writeText(source.sourceId!)}
-                                title="Click to copy"
-                                className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono"
-                              >
-                                {source.sourceId}
-                              </button>
-                            )}
-                          </div>
+              for (const source of detail.sources!) {
+                const month = source.filedDate ? formatDate(source.filedDate) : 'No date';
+                const key = `${month}|${source.sourceType}|${source.description}`;
 
-                          {/* Type and description */}
-                          <div className="text-sm font-medium text-slate-700">
-                            {source.sourceType}
-                          </div>
-                          <div className="text-sm text-slate-600 mt-0.5">
-                            {source.description}
-                          </div>
+                if (groupMap.has(key)) {
+                  groupMap.get(key)!.items!.push(source);
+                } else {
+                  const group: SourceGroup = {
+                    key,
+                    month,
+                    sourceType: source.sourceType,
+                    description: source.description,
+                    items: [source],
+                    officialUrl: source.officialUrl,
+                    agency: source.agency,
+                    projectType: source.projectType,
+                  };
+                  groupMap.set(key, group);
+                  groups.push(group);
+                }
+              }
 
-                          {/* Metadata row */}
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-slate-400">
-                            {source.agency && <span>{source.agency}</span>}
-                            {source.projectType && <span>{source.projectType}</span>}
-                            {source.officialUrl && (
-                              <a
-                                href={source.officialUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700 hover:underline"
-                              >
-                                View source →
-                              </a>
-                            )}
-                          </div>
+              return (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 mb-4">
+                    Activity ({detail.sources.length})
+                  </h3>
+                  <div className="relative">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-slate-200" />
 
-                          {/* DOB NOW enriched details */}
-                          {source.dobNowDetails && (
-                            <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
-                              {source.dobNowDetails.jobStatus && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-slate-500">Status</span>
-                                  <span className="text-slate-700 font-medium">{source.dobNowDetails.jobStatus}</span>
-                                </div>
+                    <div className="space-y-0">
+                      {groups.map((group, index) => (
+                        <div key={index} className="relative flex gap-4 pb-4 last:pb-0">
+                          {/* Timeline dot */}
+                          <div className="relative z-10 flex-shrink-0">
+                            <div className={`w-6 h-6 rounded-full bg-white border-2 ${group.items!.length > 1 ? 'border-blue-400' : 'border-slate-300'} flex items-center justify-center`}>
+                              {group.items!.length > 1 ? (
+                                <span className="text-[10px] font-medium text-blue-600">{group.items!.length}</span>
+                              ) : (
+                                <div className="w-2 h-2 rounded-full bg-slate-400" />
                               )}
-                              {source.dobNowDetails.filingStatus && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-slate-500">Filing</span>
-                                  <span className="text-slate-700">{source.dobNowDetails.filingStatus}</span>
-                                </div>
-                              )}
-                              {source.dobNowDetails.jobType && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-slate-500">Type</span>
-                                  <span className="text-slate-700">{source.dobNowDetails.jobType}</span>
-                                </div>
-                              )}
-                              {source.dobNowDetails.floors && (() => {
-                                const raw = source.dobNowDetails.floors!;
-
-                                // Check for "through" range format (e.g., "Floor Number(s) 1 through 40")
-                                const rangeMatch = raw.match(/(\d+)\s+through\s+(\d+)/i);
-                                if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
-                                  const start = parseInt(rangeMatch[1], 10);
-                                  const end = parseInt(rangeMatch[2], 10);
-                                  const extras = raw
-                                    .replace(/Floor Number\(s\)\s*\d+\s+through\s+\d+/gi, '')
-                                    .split(',')
-                                    .map(f => f.trim())
-                                    .filter(Boolean);
-                                  const summary = extras.length > 0
-                                    ? `Floors ${start}-${end}, ${extras.join(', ')}`
-                                    : `Floors ${start}-${end}`;
-                                  return (
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-slate-500">Floors</span>
-                                      <span className="text-slate-700">{summary}</span>
-                                    </div>
-                                  );
-                                }
-
-                                // Parse individual floors
-                                const floorList = raw
-                                  .split(',')
-                                  .map(f => {
-                                    let floor = f.trim();
-                                    // Remove SO codes like "-SO-3467-B00591681-I1"
-                                    floor = floor.replace(/-SO-\d+-[A-Z]\d+-[A-Z0-9]+$/i, '');
-                                    // Clean up "Floor Number(s)" prefix
-                                    floor = floor.replace(/Floor Number\(s\)\s*/gi, 'Floor ');
-                                    // Clean up "Floor -1" to "Floor 1" (negative sign is separator artifact)
-                                    floor = floor.replace(/Floor\s*-(\d+)/i, 'Floor $1');
-                                    // Clean up "Mezzanine-1" to "Mezzanine 1"
-                                    floor = floor.replace(/-(\d+)$/, ' $1');
-                                    return floor.trim();
-                                  })
-                                  .filter(Boolean)
-                                  // Deduplicate
-                                  .filter((v, i, a) => a.indexOf(v) === i)
-                                  .sort((a, b) => {
-                                    const numA = parseInt(a.match(/\d+/)?.[0] || '0');
-                                    const numB = parseInt(b.match(/\d+/)?.[0] || '0');
-                                    const specialA = /cellar|basement/i.test(a) ? -2 : /mezzanine/i.test(a) ? -1 : 0;
-                                    const specialB = /cellar|basement/i.test(b) ? -2 : /mezzanine/i.test(b) ? -1 : 0;
-                                    if (specialA !== specialB) return specialA - specialB;
-                                    if (/roof/i.test(a)) return 1;
-                                    if (/roof/i.test(b)) return -1;
-                                    return numA - numB;
-                                  });
-
-                                // Summarize if many floors
-                                const numericFloors = floorList.filter(f => /Floor \d+/.test(f));
-                                const specialFloors = floorList.filter(f => !/Floor \d+/.test(f));
-
-                                let summary: string;
-                                if (numericFloors.length > 3) {
-                                  const nums = numericFloors.map(f => parseInt(f.match(/\d+/)?.[0] || '0'));
-                                  const min = Math.min(...nums);
-                                  const max = Math.max(...nums);
-                                  summary = specialFloors.length > 0
-                                    ? `Floors ${min}-${max}, ${specialFloors.join(', ')}`
-                                    : `Floors ${min}-${max}`;
-                                } else {
-                                  summary = floorList.join(', ');
-                                }
-
-                                return (
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-slate-500">Floors</span>
-                                    <span className="text-slate-700">{summary}</span>
-                                  </div>
-                                );
-                              })()}
                             </div>
-                          )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            {/* Header row: Date, type, count */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                                {group.month}
+                              </span>
+                              <span className="text-sm text-slate-600">
+                                {group.sourceType}
+                              </span>
+                              {group.items!.length > 1 && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                  ×{group.items!.length}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Description */}
+                            <div className="text-sm text-slate-500 mt-0.5">
+                              {group.description}
+                            </div>
+
+                            {/* IDs row - compact */}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {group.items!.map((item, i) => item.sourceId && (
+                                <button
+                                  key={i}
+                                  onClick={() => navigator.clipboard.writeText(item.sourceId!)}
+                                  title="Click to copy"
+                                  className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono"
+                                >
+                                  {item.sourceId}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Metadata row */}
+                            {(group.agency || group.projectType || group.officialUrl) && (
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-400">
+                                {group.agency && <span>{group.agency}</span>}
+                                {group.projectType && <span>{group.projectType}</span>}
+                                {group.officialUrl && (
+                                  <a
+                                    href={group.officialUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:text-blue-700 hover:underline"
+                                  >
+                                    View →
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                          {/* DOB NOW enriched details - show from first item only */}
+                          {(() => {
+                            const firstWithDetails = group.items!.find(item => item.dobNowDetails);
+                            if (!firstWithDetails?.dobNowDetails) return null;
+                            const dob = firstWithDetails.dobNowDetails;
+                            return (
+                              <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                {dob.jobStatus && (
+                                  <>
+                                    <span className="text-slate-400">Status</span>
+                                    <span className="text-slate-600 font-medium">{dob.jobStatus}</span>
+                                  </>
+                                )}
+                                {dob.filingStatus && (
+                                  <>
+                                    <span className="text-slate-400">Filing</span>
+                                    <span className="text-slate-600">{dob.filingStatus}</span>
+                                  </>
+                                )}
+                                {dob.jobType && (
+                                  <>
+                                    <span className="text-slate-400">Type</span>
+                                    <span className="text-slate-600">{dob.jobType}</span>
+                                  </>
+                                )}
+                                {dob.floors && (() => {
+                                  const raw = dob.floors;
+                                  // Simplify floor display
+                                  const rangeMatch = raw.match(/(\d+)\s+through\s+(\d+)/i);
+                                  if (rangeMatch?.[1] && rangeMatch?.[2]) {
+                                    return (
+                                      <>
+                                        <span className="text-slate-400">Floors</span>
+                                        <span className="text-slate-600">{rangeMatch[1]}-{rangeMatch[2]}</span>
+                                      </>
+                                    );
+                                  }
+                                  // Count unique floors
+                                  const floors = raw.split(',').map(f => f.trim()).filter(Boolean);
+                                  return (
+                                    <>
+                                      <span className="text-slate-400">Floors</span>
+                                      <span className="text-slate-600">{floors.length} floor{floors.length > 1 ? 's' : ''}</span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            )}
+            );
+            })()}
           </div>
         )}
       </div>
