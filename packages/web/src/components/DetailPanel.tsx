@@ -6,6 +6,7 @@ import { useCallback, useState, useRef, useEffect } from 'react';
 import { useViewStore } from '../stores/viewStore';
 import { usePlaceDetail } from '../hooks/useMapData';
 import Tooltip from './Tooltip';
+import ExternalLinkBadge from './ExternalLinkBadge';
 
 const MIN_WIDTH = 320;
 const MAX_WIDTH = 800;
@@ -277,8 +278,10 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
     }
   }
 
-  // Find complaints URL (same for all complaints at this building)
-  const complaintsUrl = sources.find(s => s.complaintDetails)?.officialUrl;
+  // Find complaints URL and count (same for all complaints at this building)
+  const complaints = sources.filter(s => s.complaintDetails);
+  const complaintsUrl = complaints[0]?.officialUrl;
+  const complaintsCount = complaints.length;
 
   const toggleExpand = (key: string) => {
     setExpandedItems(prev => {
@@ -305,7 +308,7 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
             rel="noopener noreferrer"
             className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
           >
-            View complaints on BISWeb →
+            View {complaintsCount}x complaints on BISWeb →
           </a>
         )}
       </div>
@@ -316,25 +319,28 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
         <div className="space-y-0">
           {groups.map((group) => {
             const complaint = group.items[0]?.complaintDetails;
+            const dobNow = group.items[0]?.dobNowDetails;
             const isClosed = complaint?.status === 'CLOSED';
+            const isWithdrawn = dobNow?.filingStatus?.toLowerCase().includes('withdrawn');
             const isExpanded = expandedItems.has(group.key);
-            const isCollapsible = isClosed && complaint;
+            const isCollapsible = (isClosed && complaint) || isWithdrawn;
+            const isDimmed = (isClosed || isWithdrawn) && !isExpanded;
 
             return (
               <div
                 key={group.key}
-                className={`relative flex gap-4 pb-4 last:pb-0 ${isClosed && !isExpanded ? 'opacity-60' : ''}`}
+                className={`relative flex gap-4 pb-4 last:pb-0 ${isDimmed ? 'opacity-60' : ''}`}
               >
                 {/* Timeline dot */}
                 <div className="relative z-10 flex-shrink-0">
                   <div className={`w-6 h-6 rounded-full bg-white border-2 ${
                     group.items.length > 1 ? 'border-blue-400' :
-                    isClosed ? 'border-slate-200' : 'border-slate-300'
+                    (isClosed || isWithdrawn) ? 'border-slate-200' : 'border-slate-300'
                   } flex items-center justify-center`}>
                     {group.items.length > 1 ? (
                       <span className="text-[10px] font-medium text-blue-600">{group.items.length}</span>
                     ) : (
-                      <div className={`w-2 h-2 rounded-full ${isClosed ? 'bg-slate-300' : 'bg-slate-400'}`} />
+                      <div className={`w-2 h-2 rounded-full ${(isClosed || isWithdrawn) ? 'bg-slate-300' : 'bg-slate-400'}`} />
                     )}
                   </div>
                 </div>
@@ -346,7 +352,7 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                     className={`flex items-center gap-2 flex-wrap ${isCollapsible ? 'cursor-pointer' : ''}`}
                     onClick={isCollapsible ? () => toggleExpand(group.key) : undefined}
                   >
-                    <span className={`text-sm font-semibold tabular-nums ${isClosed ? 'text-slate-500' : 'text-slate-900'}`}>
+                    <span className={`text-sm font-semibold tabular-nums ${(isClosed || isWithdrawn) ? 'text-slate-500' : 'text-slate-900'}`}>
                       {group.month}
                     </span>
                     {/* Type with optional tooltip */}
@@ -356,14 +362,14 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                       if (explanation) {
                         return (
                           <Tooltip content={explanation} position="top">
-                            <span className={`text-sm cursor-help border-b border-dotted ${isClosed ? 'text-slate-400 border-slate-300' : 'text-slate-600 border-slate-400'}`}>
+                            <span className={`text-sm cursor-help border-b border-dotted ${(isClosed || isWithdrawn) ? 'text-slate-400 border-slate-300' : 'text-slate-600 border-slate-400'}`}>
                               {group.sourceType}
                             </span>
                           </Tooltip>
                         );
                       }
                       return (
-                        <span className={`text-sm ${isClosed ? 'text-slate-400' : 'text-slate-600'}`}>
+                        <span className={`text-sm ${(isClosed || isWithdrawn) ? 'text-slate-400' : 'text-slate-600'}`}>
                           {group.sourceType}
                         </span>
                       );
@@ -373,20 +379,36 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                         ×{group.items.length}
                       </span>
                     )}
-                    {/* IDs inline */}
-                    {group.items.map((item, i) => item.sourceId && (
-                      <button
-                        key={i}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(item.sourceId!);
-                        }}
-                        title="Click to copy"
-                        className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono"
-                      >
-                        {item.sourceId}
-                      </button>
-                    ))}
+                    {/* IDs inline - ZAP IDs link to portal, others copy */}
+                    {group.items.map((item, i) => {
+                      if (!item.sourceId) return null;
+                      const isZap = item.zapDetails || group.sourceType === 'ULURP Filed' || group.sourceType === 'ZAP';
+                      if (isZap) {
+                        return (
+                          <span key={i} onClick={(e) => e.stopPropagation()}>
+                            <ExternalLinkBadge
+                              label={item.sourceId!}
+                              href={`https://zap.planning.nyc.gov/projects/${item.sourceId}`}
+                              tooltip="View on ZAP Portal (Zoning Application Portal)"
+                            />
+                          </span>
+                        );
+                      }
+                      const isWithdrawn = item.dobNowDetails?.filingStatus?.toLowerCase().includes('withdrawn');
+                      return (
+                        <button
+                          key={i}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(item.sourceId!);
+                          }}
+                          title={isWithdrawn ? "Withdrawn - Click to copy" : "Click to copy"}
+                          className={`text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono ${isWithdrawn ? 'line-through opacity-60' : ''}`}
+                        >
+                          {item.sourceId}
+                        </button>
+                      );
+                    })}
                     {/* Expand indicator for closed complaints */}
                     {isCollapsible && (
                       <span className="text-xs text-slate-400 ml-auto">
@@ -439,7 +461,9 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                         const isGenericDobNow = group.officialUrl?.includes('a810-dobnow.nyc.gov');
                         // Skip CEQR generic search links (user can use Useful Links instead)
                         const isGenericCeqr = group.officialUrl === 'https://a002-ceqraccess.nyc.gov/ceqr/';
-                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr;
+                        // Skip ZAP links (ID is now clickable in header)
+                        const isZap = group.officialUrl?.includes('zap.planning.nyc.gov');
+                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr && !isZap;
                         // Skip projectType if it matches DOB NOW jobType (avoid duplication)
                         const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
                         const showProjectType = group.projectType && group.projectType !== dobJobType;
@@ -462,15 +486,22 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                         const firstWithDetails = group.items.find(item => item.dobNowDetails);
                         if (!firstWithDetails?.dobNowDetails) return null;
                         const dob = firstWithDetails.dobNowDetails;
+                        const isWithdrawn = dob.filingStatus?.toLowerCase().includes('withdrawn');
                         return (
-                          <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            {dob.jobStatus && (
+                          <div className={`mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs ${isWithdrawn ? 'opacity-50' : ''}`}>
+                            {/* Show filing status first if withdrawn, otherwise show job status */}
+                            {isWithdrawn ? (
+                              <>
+                                <span className="text-slate-400">Status</span>
+                                <span className="text-red-600 font-medium">Withdrawn</span>
+                              </>
+                            ) : dob.jobStatus && (
                               <>
                                 <span className="text-slate-400">Status</span>
                                 <span className="text-slate-600 font-medium">{dob.jobStatus}</span>
                               </>
                             )}
-                            {dob.filingStatus && (
+                            {!isWithdrawn && dob.filingStatus && (
                               <>
                                 <span className="text-slate-400">Filing</span>
                                 <span className="text-slate-600">{dob.filingStatus}</span>
@@ -501,18 +532,22 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                             {dob.floors && (() => {
                               const rangeMatch = dob.floors.match(/(\d+)\s+through\s+(\d+)/i);
                               if (rangeMatch?.[1] && rangeMatch?.[2]) {
+                                // Unify if min=max (001-001 → 001)
+                                const floorDisplay = rangeMatch[1] === rangeMatch[2]
+                                  ? rangeMatch[1]
+                                  : `${rangeMatch[1]}-${rangeMatch[2]}`;
                                 return (
                                   <>
-                                    <span className="text-slate-400">Floors</span>
-                                    <span className="text-slate-600">{rangeMatch[1]}-{rangeMatch[2]}</span>
+                                    <span className="text-slate-400">Floor{rangeMatch[1] !== rangeMatch[2] ? 's' : ''}</span>
+                                    <span className="text-slate-600">{floorDisplay}</span>
                                   </>
                                 );
                               }
                               const floors = dob.floors.split(',').map(f => f.trim()).filter(Boolean);
                               return (
                                 <>
-                                  <span className="text-slate-400">Floors</span>
-                                  <span className="text-slate-600">{floors.length} floor{floors.length > 1 ? 's' : ''}</span>
+                                  <span className="text-slate-400">Floor{floors.length > 1 ? 's' : ''}</span>
+                                  <span className="text-slate-600">{floors.length === 1 ? floors[0] : `${floors.length} floors`}</span>
                                 </>
                               );
                             })()}
@@ -586,11 +621,6 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
                                 {zap.publicStatus}
                               </span>
-                              {zap.isUlurp && (
-                                <Tooltip content="Uniform Land Use Review Procedure - NYC's public review process for land use and zoning changes" position="top">
-                                  <span className="text-xs text-slate-500 font-medium cursor-help border-b border-dotted border-slate-400">ULURP</span>
-                                </Tooltip>
-                              )}
                             </div>
 
                             {/* Project brief */}
@@ -606,24 +636,23 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                                   {zap.actions.map((action, idx) => {
                                     const label = ZAP_ACTION_LABELS[action] || action;
                                     const ulurpNum = zap.ulurpNumbers?.[idx];
-                                    const tooltipContent = ulurpNum
-                                      ? `ULURP (Uniform Land Use Review Procedure): ${ulurpNum}`
-                                      : undefined;
+                                    if (ulurpNum) {
+                                      return (
+                                        <ExternalLinkBadge
+                                          key={idx}
+                                          label={label}
+                                          href={`https://zap.planning.nyc.gov/projects?applied-filters=project_applicant_text&project_applicant_text=${encodeURIComponent(ulurpNum)}`}
+                                          tooltip={`ULURP (Uniform Land Use Review Procedure): ${ulurpNum}`}
+                                        />
+                                      );
+                                    }
                                     return (
-                                      <Tooltip
+                                      <span
                                         key={idx}
-                                        content={tooltipContent}
-                                        position="top"
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-600"
                                       >
-                                        <a
-                                          href={ulurpNum ? `https://zap.planning.nyc.gov/projects?applied-filters=project_applicant_text&project_applicant_text=${encodeURIComponent(ulurpNum)}` : undefined}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className={`inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-xs text-slate-600 ${ulurpNum ? 'hover:bg-blue-50 hover:text-blue-600 cursor-pointer' : 'cursor-help'}`}
-                                        >
-                                          {label}
-                                        </a>
-                                      </Tooltip>
+                                        {label}
+                                      </span>
                                     );
                                   })}
                                 </div>
@@ -653,15 +682,11 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                                 <Tooltip content="City Environmental Quality Review - environmental impact assessment" position="top">
                                   <span className="text-slate-400 cursor-help border-b border-dotted border-slate-300">CEQR:</span>
                                 </Tooltip>
-                                <a
+                                <ExternalLinkBadge
+                                  label={zap.ceqrNumber}
                                   href={`https://a002-ceqraccess.nyc.gov/ceqr/?${zap.ceqrNumber}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open CEQR portal (number in URL for easy copy-paste)"
-                                  className="font-mono text-blue-600 hover:text-blue-800 hover:bg-slate-100 px-1 rounded hover:underline"
-                                >
-                                  {zap.ceqrNumber} →
-                                </a>
+                                  tooltip="Open CEQR portal (number in URL for easy copy-paste)"
+                                />
                               </div>
                             )}
                           </div>
@@ -761,9 +786,33 @@ export default function DetailPanel() {
               <h2 className="text-lg font-semibold text-slate-900 truncate">
                 {detail.transformation?.headline ?? 'Loading...'}
               </h2>
-              <p className="text-sm text-slate-500 truncate">
-                {detail.place.address}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-slate-500">
+                  {detail.place.address}
+                </span>
+                {/* Property status badges */}
+                {(() => {
+                  const prop = detail.propertyDetails;
+                  if (!prop) return null;
+                  const flags: { label: string; color: string }[] = [];
+                  if (prop.landmarkStatus) flags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
+                  if (prop.cityOwned) flags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.condo) flags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.vacant) flags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.hasClass1Violation) flags.push({ label: 'Class 1 Violation', color: 'bg-red-100 text-red-700' });
+                  if (prop.hasStopWork) flags.push({ label: 'Stop Work', color: 'bg-red-100 text-red-700' });
+                  if (prop.hasPadlock) flags.push({ label: 'Padlock', color: 'bg-red-100 text-red-700' });
+                  if (prop.hasVacateOrder) flags.push({ label: 'Vacate Order', color: 'bg-red-100 text-red-700' });
+                  if (prop.filingOnHold) flags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
+                  if (prop.approvalOnHold) flags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
+                  if (flags.length === 0) return null;
+                  return flags.map((flag, i) => (
+                    <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
+                      {flag.label}
+                    </span>
+                  ));
+                })()}
+              </div>
             </>
           ) : null}
         </div>
@@ -823,47 +872,30 @@ export default function DetailPanel() {
               )}
             </div>
 
-            {/* Timeline - Visual vertical line design */}
+            {/* Timeline dates */}
             {(() => {
-              const events = [
-                { date: detail.transformation.disruptionStart, label: 'Disruption begins', icon: '🚧', color: 'bg-amber-500' },
-                { date: detail.transformation.visibleChangeDate, label: 'Visible change', icon: '👁', color: 'bg-blue-500' },
-                { date: detail.transformation.usageChangeDate, label: 'Ready for use', icon: '✓', color: 'bg-green-500' },
-                { date: detail.transformation.disruptionEnd, label: 'Disruption ends', icon: '✓', color: 'bg-green-600' },
-              ].filter(e => e.date);
+              const t = detail.transformation;
+              const items: { label: string; date: string }[] = [];
 
-              if (events.length === 0) return null;
+              if (t.disruptionStart) {
+                const label = t.isEstimatedStart ? 'Permit issued' : 'Construction started';
+                items.push({ label: `${label}: ${formatDate(t.disruptionStart)}`, date: t.disruptionStart });
+              }
+              if (t.disruptionEnd) {
+                const label = t.isEstimatedEnd ? 'Expected completion' : 'Completed';
+                items.push({ label: `${label}: ${formatDate(t.disruptionEnd)}`, date: t.disruptionEnd });
+              }
+
+              if (items.length === 0) return null;
 
               return (
-                <div className="relative pl-6">
-                  {/* Vertical line */}
-                  <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-amber-400 via-blue-400 to-green-500" />
-
-                  <div className="space-y-4">
-                    {events.map((event, i) => (
-                      <div key={i} className="relative flex items-start gap-3">
-                        {/* Dot on the line */}
-                        <div className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full ${event.color} border-2 border-white shadow-sm flex items-center justify-center`}>
-                          <span className="text-[8px] text-white">{i + 1}</span>
-                        </div>
-                        {/* Content */}
-                        <div className="flex-1 flex justify-between items-baseline min-w-0">
-                          <span className="text-sm text-slate-600">{event.label}</span>
-                          <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                            {formatDate(event.date)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-1">
+                  {items.map((item, i) => (
+                    <p key={i} className="text-sm text-slate-600">{item.label}</p>
+                  ))}
                 </div>
               );
             })()}
-
-            {/* One-liner */}
-            <p className="text-slate-700 text-base leading-relaxed">
-              {detail.transformation.oneLiner}
-            </p>
 
             {/* Disruption summary */}
             {detail.transformation.disruptionSummary && (
@@ -877,114 +909,86 @@ export default function DetailPanel() {
               </div>
             )}
 
-            {/* Location details */}
+            {/* Property IDs & People (BIN, BBL, Community Board, Owner, Architect) */}
             {(() => {
-              // Filter out "Unknown" placeholder values
-              const isKnown = (v: string | undefined | null) => v && v !== 'Unknown';
-              const address = isKnown(detail.place.address) ? detail.place.address : null;
-              const neighborhood = isKnown(detail.place.neighborhood) ? detail.place.neighborhood : null;
-              const borough = isKnown(detail.place.borough) ? detail.place.borough : null;
-
               const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
               const prop = detail.propertyDetails;
-              const hasPropertyInfo = !!(prop?.bin || dobNow?.bin || prop?.bbl || dobNow?.owner || dobNow?.designProfessional || prop?.communityBoard);
+              const bin = prop?.bin ?? dobNow?.bin;
+              const bbl = prop?.bbl;
+              const owner = dobNow?.owner;
+              const designProfessional = dobNow?.designProfessional;
+              const communityBoard = prop?.communityBoard;
 
-              if (!address && !neighborhood && !borough && !hasPropertyInfo) return null;
+              if (!bin && !bbl && !owner && !designProfessional && !communityBoard) return null;
+
+              // Parse CB: "402" -> borough 4, district 02
+              const cbBorough = communityBoard ? parseInt(communityBoard.charAt(0), 10) : null;
+              const cbDistrict = communityBoard ? parseInt(communityBoard.slice(1), 10) : null;
+              const boroughNames = ['', 'Manhattan', 'Bronx', 'Brooklyn', 'Queens', 'Staten Island'];
+              const cbUrl = cbBorough && cbDistrict
+                ? `https://www.nyc.gov/site/queenscb${cbDistrict}/index.page`.replace('queenscb',
+                    cbBorough === 1 ? 'manhattancb' :
+                    cbBorough === 2 ? 'bronxcb' :
+                    cbBorough === 3 ? 'brooklyncb' :
+                    cbBorough === 4 ? 'queenscb' : 'sicb')
+                : null;
 
               return (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-900 mb-2">Location</h3>
-                  <div className="text-sm text-slate-600 space-y-1">
-                    {address && <p>{address}</p>}
-                    {(neighborhood || borough) && (
-                      <p>
-                        {[neighborhood, borough]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </p>
-                    )}
-                {/* BIN, BBL, Owner, Architect, Community Board */}
-                {(() => {
-                  const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
-                  const prop = detail.propertyDetails;
-                  const bin = prop?.bin ?? dobNow?.bin;
-                  const bbl = prop?.bbl;
-                  const owner = dobNow?.owner;
-                  const designProfessional = dobNow?.designProfessional;
-                  const communityBoard = prop?.communityBoard;
-                  // Parse CB: "402" -> borough 4, district 02
-                  const cbBorough = communityBoard ? parseInt(communityBoard.charAt(0), 10) : null;
-                  const cbDistrict = communityBoard ? parseInt(communityBoard.slice(1), 10) : null;
-                  const boroughNames = ['', 'Manhattan', 'Bronx', 'Brooklyn', 'Queens', 'Staten Island'];
-                  const cbUrl = cbBorough && cbDistrict
-                    ? `https://www.nyc.gov/site/queenscb${cbDistrict}/index.page`.replace('queenscb',
-                        cbBorough === 1 ? 'manhattancb' :
-                        cbBorough === 2 ? 'bronxcb' :
-                        cbBorough === 3 ? 'brooklyncb' :
-                        cbBorough === 4 ? 'queenscb' : 'sicb')
-                    : null;
-
-                  if (!bin && !bbl && !owner && !designProfessional && !communityBoard) return null;
-                  return (
-                    <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
-                      {(bin || bbl) && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500 text-xs w-16">IDs</span>
-                          <div className="flex gap-2">
-                            {bin && (
-                              <button
-                                onClick={() => navigator.clipboard.writeText(bin)}
-                                title="Click to copy BIN"
-                                className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
-                              >
-                                BIN {bin}
-                              </button>
-                            )}
-                            {bbl && (
-                              <button
-                                onClick={() => navigator.clipboard.writeText(bbl)}
-                                title="Click to copy BBL"
-                                className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
-                              >
-                                BBL {bbl}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {communityBoard && cbBorough && cbDistrict && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 flex-shrink-0">
-                            <Tooltip content="Local advisory board that reviews land use, zoning, and neighborhood issues" position="right">
-                              <span className="text-slate-500 text-xs cursor-help border-b border-dotted border-slate-400">CB</span>
-                            </Tooltip>
-                          </div>
-                          <a
-                            href={cbUrl ?? '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                <div className="text-sm text-slate-600 space-y-1">
+                  {(bin || bbl) && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs w-16">IDs</span>
+                      <div className="flex gap-2">
+                        {bin && (
+                          <button
+                            onClick={() => navigator.clipboard.writeText(bin)}
+                            title="Click to copy BIN"
+                            className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
                           >
-                            {boroughNames[cbBorough]} CB{cbDistrict}
-                          </a>
-                        </div>
-                      )}
-                      {owner && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500 text-xs w-16">Owner</span>
-                          <span className="text-slate-700 text-sm">{owner}</span>
-                        </div>
-                      )}
-                      {designProfessional && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-500 text-xs w-16">Architect</span>
-                          <span className="text-slate-700 text-sm">{designProfessional}</span>
-                        </div>
-                      )}
+                            BIN {bin}
+                          </button>
+                        )}
+                        {bbl && (
+                          <button
+                            onClick={() => navigator.clipboard.writeText(bbl)}
+                            title="Click to copy BBL"
+                            className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                          >
+                            BBL {bbl}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  );
-                })()}
-                  </div>
+                  )}
+                  {communityBoard && cbBorough && cbDistrict && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 flex-shrink-0">
+                        <Tooltip content="Local advisory board that reviews land use, zoning, and neighborhood issues" position="right">
+                          <span className="text-slate-500 text-xs cursor-help border-b border-dotted border-slate-400">CB</span>
+                        </Tooltip>
+                      </div>
+                      <a
+                        href={cbUrl ?? '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                      >
+                        {boroughNames[cbBorough]} CB{cbDistrict}
+                      </a>
+                    </div>
+                  )}
+                  {owner && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs w-16">Owner</span>
+                      <span className="text-slate-700 text-sm">{owner}</span>
+                    </div>
+                  )}
+                  {designProfessional && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs w-16">Architect</span>
+                      <span className="text-slate-700 text-sm">{designProfessional}</span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1015,49 +1019,6 @@ export default function DetailPanel() {
                       </>
                     )}
                   </div>
-
-                  {/* Flags row */}
-                  {(() => {
-                    const flags: { label: string; color: string }[] = [];
-                    const prop = detail.propertyDetails!;
-
-                    // Environmental
-                    if (prop.floodZone) flags.push({ label: 'Flood Zone', color: 'bg-blue-100 text-blue-700' });
-                    if (prop.coastalErosion) flags.push({ label: 'Coastal Erosion', color: 'bg-blue-100 text-blue-700' });
-                    if (prop.tidalWetlands) flags.push({ label: 'Tidal Wetlands', color: 'bg-cyan-100 text-cyan-700' });
-                    if (prop.freshwaterWetlands) flags.push({ label: 'Wetlands', color: 'bg-cyan-100 text-cyan-700' });
-
-                    // Status
-                    if (prop.landmarkStatus) flags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
-                    if (prop.cityOwned) flags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
-                    if (prop.condo) flags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
-                    if (prop.vacant) flags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
-
-                    // Regulatory
-                    if (prop.sroRestricted) flags.push({ label: 'SRO', color: 'bg-purple-100 text-purple-700' });
-                    if (prop.loftLaw) flags.push({ label: 'Loft Law', color: 'bg-purple-100 text-purple-700' });
-                    if (prop.antiHarassment) flags.push({ label: 'Anti-Harassment', color: 'bg-purple-100 text-purple-700' });
-
-                    // Violations (red)
-                    if (prop.hasClass1Violation) flags.push({ label: 'Class 1 Violation', color: 'bg-red-100 text-red-700' });
-                    if (prop.hasStopWork) flags.push({ label: 'Stop Work', color: 'bg-red-100 text-red-700' });
-                    if (prop.hasPadlock) flags.push({ label: 'Padlock', color: 'bg-red-100 text-red-700' });
-                    if (prop.hasVacateOrder) flags.push({ label: 'Vacate Order', color: 'bg-red-100 text-red-700' });
-                    if (prop.filingOnHold) flags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
-                    if (prop.approvalOnHold) flags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
-
-                    if (flags.length === 0) return null;
-
-                    return (
-                      <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
-                        {flags.map((flag, i) => (
-                          <span key={i} className={`text-xs px-2 py-0.5 rounded ${flag.color}`}>
-                            {flag.label}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })()}
                 </div>
               </div>
             )}
