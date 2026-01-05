@@ -6,7 +6,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db, places, transformationStates, rawEvents } from '@ucm/pipeline';
 import { eq } from 'drizzle-orm';
-import type { PlaceDetail, SourceSummary, TransformationNature, Certainty, ProjectStatus } from '@ucm/shared';
+import type { PlaceDetail, SourceSummary, TransformationNature, Certainty, ProjectStatus, PropertyDetails } from '@ucm/shared';
 
 // DOB NOW API response types
 interface DobNowPw1Item {
@@ -26,6 +26,48 @@ interface DobNowPw1Item {
 interface DobNowApiResponse {
   IsSuccess?: boolean;
   pw1List?: DobNowPw1Item[];
+}
+
+// DOB NOW Property Details API response
+interface PropertyDetailsApiResponse {
+  IsSuccess?: boolean;
+  PropertyDetails?: {
+    BIN?: string;
+    Borough?: number;
+    TaxBlock?: number;
+    TaxLot?: number;
+    HouseNo?: string;
+    StreetName?: string;
+    Zip?: string;
+    CrossStreet1?: string;
+    CrossStreet2?: string;
+    CrossStreet3?: string;
+    VlFinaOccpncy?: string;
+    BuildingsonLot?: number;
+    Vacant?: string;
+    CityOwned?: string;
+    Condo?: string;
+    SpecialArea?: string;
+    SpecialDistrict?: string;
+    LandmarkStatus?: string;
+    SpecialFloodHazardArea?: string;
+    CoastalErosionHazardArea?: string;
+    FreshwaterWetlands?: string;
+    TidalWetlands?: string;
+    SRORestricted?: string;
+    LoftLaw?: string;
+    AntiHarassmentRequirements?: boolean;
+    CommunityBoard?: number;
+    CensusTract?: number;
+  };
+  PropertyViolation?: {
+    Class1Violation?: string;
+    StopWork?: string;
+    PadlockFlag?: string;
+    VacateFlag?: string;
+    FilingOnHold?: string;
+    ApprovalOnHold?: string;
+  };
 }
 
 const paramsSchema = z.object({
@@ -126,6 +168,26 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
           };
         })
       );
+
+      // Extract BIN from sources (either from rawData or dobNowDetails)
+      let bin: string | undefined;
+      for (const event of events) {
+        const rawData = event.rawData as Record<string, unknown> | null;
+        if (rawData?.['bin']) {
+          bin = rawData['bin'] as string;
+          break;
+        }
+      }
+      // Fallback: get BIN from DOB NOW enrichment
+      if (!bin) {
+        const sourceWithBin = response.sources?.find(s => s.dobNowDetails?.bin);
+        bin = sourceWithBin?.dobNowDetails?.bin;
+      }
+
+      // Fetch property details if we have a BIN
+      if (bin) {
+        response.propertyDetails = await fetchPropertyDetails(bin);
+      }
     }
 
     return response;
@@ -390,6 +452,92 @@ async function fetchDobNowDetails(jobFilingNumber: string): Promise<SourceSummar
       filingStatus: filing.CurrentFilingStatusValue || undefined,
       jobType: filing.JobTypeLabel || undefined,
       floors: filing.WorkonFloors || undefined,
+    };
+  } catch {
+    // Silently fail - API enrichment is optional
+    return undefined;
+  }
+}
+
+/**
+ * Fetch property details from DOB NOW Property Details API
+ * API: https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/getPublicPortalPropertyDetailsGet/{type}|{bin}
+ *
+ * The first parameter is a "type" code (use 2), not the borough.
+ * The borough is returned in the response based on the BIN.
+ */
+async function fetchPropertyDetails(bin: string): Promise<PropertyDetails | undefined> {
+  try {
+    // Use type=2 for the API call (not borough code)
+    const response = await fetch(
+      `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/getPublicPortalPropertyDetailsGet/2%7C${bin}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const data = await response.json() as PropertyDetailsApiResponse;
+
+    if (!data.IsSuccess || !data.PropertyDetails) {
+      return undefined;
+    }
+
+    const prop = data.PropertyDetails;
+    const viol = data.PropertyViolation;
+
+    // Build BBL from borough + block + lot (use borough from response, not from BIN)
+    const borough = prop.Borough ?? 0;
+    const taxBlock = prop.TaxBlock ?? 0;
+    const taxLot = prop.TaxLot ?? 0;
+    const bbl = `${borough}${String(taxBlock).padStart(5, '0')}${String(taxLot).padStart(4, '0')}`;
+
+    // Collect cross streets
+    const crossStreets: string[] = [];
+    if (prop.CrossStreet1) crossStreets.push(prop.CrossStreet1);
+    if (prop.CrossStreet2) crossStreets.push(prop.CrossStreet2);
+    if (prop.CrossStreet3) crossStreets.push(prop.CrossStreet3);
+
+    return {
+      bin: prop.BIN ?? bin,
+      bbl,
+      borough: prop.Borough ?? borough,
+      taxBlock,
+      taxLot,
+      houseNumber: prop.HouseNo || undefined,
+      streetName: prop.StreetName || undefined,
+      zip: prop.Zip || undefined,
+      crossStreets: crossStreets.length > 0 ? crossStreets : undefined,
+      occupancy: prop.VlFinaOccpncy || undefined,
+      buildingsOnLot: prop.BuildingsonLot || undefined,
+      vacant: prop.Vacant === 'YES',
+      cityOwned: prop.CityOwned === 'YES',
+      condo: prop.Condo === 'YES',
+      specialArea: prop.SpecialArea || undefined,
+      specialDistrict: prop.SpecialDistrict || undefined,
+      landmarkStatus: prop.LandmarkStatus || undefined,
+      floodZone: prop.SpecialFloodHazardArea === 'Y',
+      coastalErosion: prop.CoastalErosionHazardArea === 'Y',
+      freshwaterWetlands: prop.FreshwaterWetlands === 'Y',
+      tidalWetlands: prop.TidalWetlands === 'Y',
+      sroRestricted: prop.SRORestricted === 'YES',
+      loftLaw: prop.LoftLaw?.trim() === 'YES',
+      antiHarassment: prop.AntiHarassmentRequirements === true,
+      hasClass1Violation: viol?.Class1Violation !== 'N' && viol?.Class1Violation !== '',
+      hasStopWork: viol?.StopWork !== 'N' && viol?.StopWork !== '',
+      hasPadlock: viol?.PadlockFlag !== 'N' && viol?.PadlockFlag !== '',
+      hasVacateOrder: viol?.VacateFlag !== 'N' && viol?.VacateFlag !== '',
+      filingOnHold: viol?.FilingOnHold === 'Y',
+      approvalOnHold: viol?.ApprovalOnHold === 'Y',
+      communityBoard: prop.CommunityBoard ? String(prop.CommunityBoard) : undefined,
+      censusTract: prop.CensusTract || undefined,
     };
   } catch {
     // Silently fail - API enrichment is optional

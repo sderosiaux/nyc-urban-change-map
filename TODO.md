@@ -5,6 +5,7 @@
 ### Implemented
 - [x] DOB NOW API - Job details, status, owner, architect, BIN
 - [x] DOB NOW GlobalSearch API - Real-time job lookup by job number
+- [x] DOB NOW Property Details API - Full property info (BBL, zones, flood, violations)
 
 ### NYC Open Data (Socrata API)
 Bulk datasets with historical data, queryable via REST API:
@@ -19,15 +20,16 @@ Bulk datasets with historical data, queryable via REST API:
   - URL: `https://data.cityofnewyork.us/resource/rbx6-tga4.json`
   - Query: `?bin=3065247`
 
-### DOB NOW Internal APIs (require session)
-These APIs provide richer data but require authenticated session:
+### DOB NOW Public APIs
+These APIs are publicly accessible with just a User-Agent header:
 
-- [ ] **Property Details API** - Full property info by BIN
-  - URL: `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/getPublicPortalPropertyDetailsGet/{type}|{bin}`
+- [x] **Property Details API** - Full property info by BIN
+  - URL: `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/getPublicPortalPropertyDetailsGet/2|{bin}`
   - Example: `getPublicPortalPropertyDetailsGet/2|3065247`
-  - Requires: `authtoken` header + session cookies
-  - Data: Detailed property information, all filings, violations, complaints
-  - Note: Requires browser session scraping or auth flow implementation
+  - Note: First param is always `2` (lookup by BIN), not borough code
+  - Headers: `User-Agent: Mozilla/5.0`
+  - Returns: BIN, BBL (tax block/lot), occupancy, special zones, flood zone, violations, regulatory flags
+  - Implemented: `packages/api/src/routes/places.ts` → `fetchPropertyDetails()`
 
 ### To Implement
 Fetch and display data from these additional NYC data sources:

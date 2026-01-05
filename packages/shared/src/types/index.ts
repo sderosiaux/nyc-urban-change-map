@@ -252,6 +252,7 @@ export interface PlaceDetail {
     lastActivity?: string;
   };
   sources?: SourceSummary[];
+  propertyDetails?: PropertyDetails;
 }
 
 export interface SourceSummary {
@@ -275,6 +276,58 @@ export interface SourceSummary {
     jobType?: string;
     floors?: string;
   };
+}
+
+// =============================================================================
+// PROPERTY DETAILS (from DOB NOW Property Details API)
+// =============================================================================
+
+export interface PropertyDetails {
+  // Identifiers
+  bin: string;
+  bbl: string;                      // Derived: {borough}{block:5}{lot:4}
+  borough: number;                  // 1=Manhattan, 2=Bronx, 3=Brooklyn, 4=Queens, 5=Staten Island
+  taxBlock: number;
+  taxLot: number;
+
+  // Address
+  houseNumber?: string;
+  streetName?: string;
+  zip?: string;
+  crossStreets?: string[];          // Nearby cross streets
+
+  // Building characteristics
+  occupancy?: string;               // e.g., "F5-Factory/Industrial"
+  buildingsOnLot?: number;
+  vacant?: boolean;
+  cityOwned?: boolean;
+  condo?: boolean;
+
+  // Special designations
+  specialArea?: string;             // e.g., "IBZ - Industrial Business Zone"
+  specialDistrict?: string;
+  landmarkStatus?: string;
+  floodZone?: boolean;              // Special Flood Hazard Area
+  coastalErosion?: boolean;
+  freshwaterWetlands?: boolean;
+  tidalWetlands?: boolean;
+
+  // Regulatory flags
+  sroRestricted?: boolean;          // Single Room Occupancy
+  loftLaw?: boolean;
+  antiHarassment?: boolean;
+
+  // Violation flags
+  hasClass1Violation?: boolean;
+  hasStopWork?: boolean;
+  hasPadlock?: boolean;
+  hasVacateOrder?: boolean;
+  filingOnHold?: boolean;
+  approvalOnHold?: boolean;
+
+  // Administrative
+  communityBoard?: string;
+  censusTract?: number;
 }
 
 export interface HeatmapCell {

@@ -5,6 +5,7 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { useViewStore } from '../stores/viewStore';
 import { usePlaceDetail } from '../hooks/useMapData';
+import Tooltip from './Tooltip';
 
 const MIN_WIDTH = 320;
 const MAX_WIDTH = 800;
@@ -234,24 +235,70 @@ export default function DetailPanel() {
                     .filter(Boolean)
                     .join(', ') || 'Location details unavailable'}
                 </p>
-                {/* BIN, Owner, Architect from first DOB NOW source */}
+                {/* BIN, BBL, Owner, Architect, Community Board */}
                 {(() => {
                   const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
-                  if (!dobNow) return null;
-                  const { bin, owner, designProfessional } = dobNow;
-                  if (!bin && !owner && !designProfessional) return null;
+                  const prop = detail.propertyDetails;
+                  const bin = prop?.bin ?? dobNow?.bin;
+                  const bbl = prop?.bbl;
+                  const owner = dobNow?.owner;
+                  const designProfessional = dobNow?.designProfessional;
+                  const communityBoard = prop?.communityBoard;
+                  // Parse CB: "402" -> borough 4, district 02
+                  const cbBorough = communityBoard ? parseInt(communityBoard.charAt(0), 10) : null;
+                  const cbDistrict = communityBoard ? parseInt(communityBoard.slice(1), 10) : null;
+                  const boroughNames = ['', 'Manhattan', 'Bronx', 'Brooklyn', 'Queens', 'Staten Island'];
+                  const cbUrl = cbBorough && cbDistrict
+                    ? `https://www.nyc.gov/site/queenscb${cbDistrict}/index.page`.replace('queenscb',
+                        cbBorough === 1 ? 'manhattancb' :
+                        cbBorough === 2 ? 'bronxcb' :
+                        cbBorough === 3 ? 'brooklyncb' :
+                        cbBorough === 4 ? 'queenscb' : 'sicb')
+                    : null;
+
+                  if (!bin && !bbl && !owner && !designProfessional && !communityBoard) return null;
                   return (
                     <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
-                      {bin && (
+                      {(bin || bbl) && (
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-500 text-xs w-16">BIN</span>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(bin)}
-                            title="Click to copy BIN"
-                            className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                          <span className="text-slate-500 text-xs w-16">IDs</span>
+                          <div className="flex gap-2">
+                            {bin && (
+                              <button
+                                onClick={() => navigator.clipboard.writeText(bin)}
+                                title="Click to copy BIN"
+                                className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                              >
+                                BIN {bin}
+                              </button>
+                            )}
+                            {bbl && (
+                              <button
+                                onClick={() => navigator.clipboard.writeText(bbl)}
+                                title="Click to copy BBL"
+                                className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                              >
+                                BBL {bbl}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {communityBoard && cbBorough && cbDistrict && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 flex-shrink-0">
+                            <Tooltip content="Local advisory board that reviews land use, zoning, and neighborhood issues" position="right">
+                              <span className="text-slate-500 text-xs cursor-help border-b border-dotted border-slate-400">CB</span>
+                            </Tooltip>
+                          </div>
+                          <a
+                            href={cbUrl ?? '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
                           >
-                            {bin}
-                          </button>
+                            {boroughNames[cbBorough]} CB{cbDistrict}
+                          </a>
                         </div>
                       )}
                       {owner && (
@@ -271,6 +318,79 @@ export default function DetailPanel() {
                 })()}
               </div>
             </div>
+
+            {/* Property Details from DOB NOW API */}
+            {detail.propertyDetails && (
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 mb-2">Property Details</h3>
+                <div className="bg-slate-50 rounded-lg p-3 space-y-3">
+                  {/* Key info grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    {detail.propertyDetails.occupancy && (
+                      <>
+                        <span className="text-slate-500">Use</span>
+                        <span className="text-slate-700">{detail.propertyDetails.occupancy}</span>
+                      </>
+                    )}
+                    {detail.propertyDetails.specialArea && (
+                      <>
+                        <span className="text-slate-500">Zone</span>
+                        <span className="text-slate-700">{detail.propertyDetails.specialArea}</span>
+                      </>
+                    )}
+                    {detail.propertyDetails.buildingsOnLot && detail.propertyDetails.buildingsOnLot > 1 && (
+                      <>
+                        <span className="text-slate-500">Buildings</span>
+                        <span className="text-slate-700">{detail.propertyDetails.buildingsOnLot} on lot</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Flags row */}
+                  {(() => {
+                    const flags: { label: string; color: string }[] = [];
+                    const prop = detail.propertyDetails!;
+
+                    // Environmental
+                    if (prop.floodZone) flags.push({ label: 'Flood Zone', color: 'bg-blue-100 text-blue-700' });
+                    if (prop.coastalErosion) flags.push({ label: 'Coastal Erosion', color: 'bg-blue-100 text-blue-700' });
+                    if (prop.tidalWetlands) flags.push({ label: 'Tidal Wetlands', color: 'bg-cyan-100 text-cyan-700' });
+                    if (prop.freshwaterWetlands) flags.push({ label: 'Wetlands', color: 'bg-cyan-100 text-cyan-700' });
+
+                    // Status
+                    if (prop.landmarkStatus) flags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
+                    if (prop.cityOwned) flags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
+                    if (prop.condo) flags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
+                    if (prop.vacant) flags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
+
+                    // Regulatory
+                    if (prop.sroRestricted) flags.push({ label: 'SRO', color: 'bg-purple-100 text-purple-700' });
+                    if (prop.loftLaw) flags.push({ label: 'Loft Law', color: 'bg-purple-100 text-purple-700' });
+                    if (prop.antiHarassment) flags.push({ label: 'Anti-Harassment', color: 'bg-purple-100 text-purple-700' });
+
+                    // Violations (red)
+                    if (prop.hasClass1Violation) flags.push({ label: 'Class 1 Violation', color: 'bg-red-100 text-red-700' });
+                    if (prop.hasStopWork) flags.push({ label: 'Stop Work', color: 'bg-red-100 text-red-700' });
+                    if (prop.hasPadlock) flags.push({ label: 'Padlock', color: 'bg-red-100 text-red-700' });
+                    if (prop.hasVacateOrder) flags.push({ label: 'Vacate Order', color: 'bg-red-100 text-red-700' });
+                    if (prop.filingOnHold) flags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
+                    if (prop.approvalOnHold) flags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
+
+                    if (flags.length === 0) return null;
+
+                    return (
+                      <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
+                        {flags.map((flag, i) => (
+                          <span key={i} className={`text-xs px-2 py-0.5 rounded ${flag.color}`}>
+                            {flag.label}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
             {/* Activity Feed / Sources Timeline */}
             {detail.sources && detail.sources.length > 0 && (() => {
