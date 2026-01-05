@@ -771,11 +771,11 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                       </span>
                     )}
                     {/* IDs inline - ZAP/Violations link to portals, others copy */}
-                    {group.items.map((item, i) => {
+                    {/* Skip individual IDs for Civil Penalties - count badge is enough */}
+                    {group.sourceType !== 'Civil Penalty' && group.items.map((item, i) => {
                       if (!item.sourceId) return null;
                       const isZap = item.zapDetails || group.sourceType === 'ULURP Filed' || group.sourceType === 'ZAP';
                       const isViolation = group.sourceType === 'Violation';
-                      const isCivilPenalty = group.sourceType === 'Civil Penalty';
                       if (isZap) {
                         return (
                           <span key={i} onClick={(e) => e.stopPropagation()}>
@@ -794,17 +794,6 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                               label={item.sourceId!}
                               href={`https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}`}
                               tooltip="View property profile on BISWeb"
-                            />
-                          </span>
-                        );
-                      }
-                      if (isCivilPenalty) {
-                        return (
-                          <span key={i} onClick={(e) => e.stopPropagation()}>
-                            <ExternalLinkBadge
-                              label={item.sourceId!}
-                              href="https://a810-dobnow.nyc.gov/publish/Index.html#!/search"
-                              tooltip="Search on DOB NOW (copy violation number)"
                             />
                           </span>
                         );
