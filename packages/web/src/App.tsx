@@ -6,6 +6,7 @@ import MapView from './components/MapView';
 import SearchBar from './components/SearchBar';
 import TimeControl from './components/TimeControl';
 import IntensityControl from './components/IntensityControl';
+import UsefulLinks from './components/UsefulLinks';
 import Legend from './components/Legend';
 import DetailPanel from './components/DetailPanel';
 import { useViewStore } from './stores/viewStore';
@@ -25,8 +26,9 @@ export default function App() {
 
       {/* Controls at bottom */}
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none z-10">
-        {/* Left: Intensity control */}
+        {/* Left: Useful links + Intensity control */}
         <div className="pointer-events-auto">
+          <UsefulLinks />
           <IntensityControl />
         </div>
 

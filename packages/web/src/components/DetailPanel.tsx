@@ -359,7 +359,9 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                       {/* Metadata row */}
                       {(() => {
                         const isComplaint = !!complaint;
-                        const showUrl = group.officialUrl && !isComplaint;
+                        // Skip generic DOB NOW links (they just go to homepage)
+                        const isGenericDobNow = group.officialUrl?.includes('a810-dobnow.nyc.gov/publish/Index.html');
+                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow;
                         // Skip projectType if it matches DOB NOW jobType (avoid duplication)
                         const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
                         const showProjectType = group.projectType && group.projectType !== dobJobType;
