@@ -702,15 +702,27 @@ export default function DetailPanel() {
             )}
 
             {/* Location details */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-900 mb-2">Location</h3>
-              <div className="text-sm text-slate-600 space-y-1">
-                {detail.place.address && <p>{detail.place.address}</p>}
-                <p>
-                  {[detail.place.neighborhood, detail.place.borough]
-                    .filter(Boolean)
-                    .join(', ') || 'Location details unavailable'}
-                </p>
+            {(() => {
+              const hasAddress = !!detail.place.address;
+              const hasNeighborhood = !!detail.place.neighborhood || !!detail.place.borough;
+              const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
+              const prop = detail.propertyDetails;
+              const hasPropertyInfo = !!(prop?.bin || dobNow?.bin || prop?.bbl || dobNow?.owner || dobNow?.designProfessional || prop?.communityBoard);
+
+              if (!hasAddress && !hasNeighborhood && !hasPropertyInfo) return null;
+
+              return (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 mb-2">Location</h3>
+                  <div className="text-sm text-slate-600 space-y-1">
+                    {detail.place.address && <p>{detail.place.address}</p>}
+                    {(detail.place.neighborhood || detail.place.borough) && (
+                      <p>
+                        {[detail.place.neighborhood, detail.place.borough]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                    )}
                 {/* BIN, BBL, Owner, Architect, Community Board */}
                 {(() => {
                   const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
@@ -792,8 +804,10 @@ export default function DetailPanel() {
                     </div>
                   );
                 })()}
-              </div>
-            </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Property Details from DOB NOW API */}
             {detail.propertyDetails && (
