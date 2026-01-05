@@ -703,22 +703,26 @@ export default function DetailPanel() {
 
             {/* Location details */}
             {(() => {
-              const hasAddress = !!detail.place.address;
-              const hasNeighborhood = !!detail.place.neighborhood || !!detail.place.borough;
+              // Filter out "Unknown" placeholder values
+              const isKnown = (v: string | undefined | null) => v && v !== 'Unknown';
+              const address = isKnown(detail.place.address) ? detail.place.address : null;
+              const neighborhood = isKnown(detail.place.neighborhood) ? detail.place.neighborhood : null;
+              const borough = isKnown(detail.place.borough) ? detail.place.borough : null;
+
               const dobNow = detail.sources?.find(s => s.dobNowDetails)?.dobNowDetails;
               const prop = detail.propertyDetails;
               const hasPropertyInfo = !!(prop?.bin || dobNow?.bin || prop?.bbl || dobNow?.owner || dobNow?.designProfessional || prop?.communityBoard);
 
-              if (!hasAddress && !hasNeighborhood && !hasPropertyInfo) return null;
+              if (!address && !neighborhood && !borough && !hasPropertyInfo) return null;
 
               return (
                 <div>
                   <h3 className="text-sm font-medium text-slate-900 mb-2">Location</h3>
                   <div className="text-sm text-slate-600 space-y-1">
-                    {detail.place.address && <p>{detail.place.address}</p>}
-                    {(detail.place.neighborhood || detail.place.borough) && (
+                    {address && <p>{address}</p>}
+                    {(neighborhood || borough) && (
                       <p>
-                        {[detail.place.neighborhood, detail.place.borough]
+                        {[neighborhood, borough]
                           .filter(Boolean)
                           .join(', ')}
                       </p>
