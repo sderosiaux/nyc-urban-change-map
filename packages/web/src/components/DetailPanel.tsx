@@ -37,43 +37,43 @@ const DISPOSITION_EXPLANATIONS: Record<string, string> = {
 // DOB Job type labels (human-readable) and explanations
 const JOB_TYPE_LABELS: Record<string, string> = {
   // New construction
-  'New Building': 'New Construction',
-  'NB': 'New Construction',
+  'New Building': 'New building from ground up',
+  'NB': 'New building from ground up',
   // Alterations
-  'Alteration': 'Alteration',
-  'Alteration CO': 'Major Renovation',
-  'ALT-CO': 'Major Renovation',
-  'ALT-CO - New Building with Existing Elements to Remain': 'Partial Rebuild',
-  'Alteration Type 1': 'Major Alteration',
-  'Alteration Type 2': 'Multiple Work Types',
-  'Alteration Type 3': 'Minor Work',
-  'A1': 'Major Alteration',
-  'A2': 'Multiple Work Types',
-  'A3': 'Minor Work',
+  'Alteration': 'Building modification',
+  'Alteration CO': 'Major renovation (new certificate)',
+  'ALT-CO': 'Major renovation (new certificate)',
+  'ALT-CO - New Building with Existing Elements to Remain': 'Rebuild keeping some elements',
+  'Alteration Type 1': 'Major work (exits/layout change)',
+  'Alteration Type 2': 'Multiple work types',
+  'Alteration Type 3': 'Single minor work type',
+  'A1': 'Major work (exits/layout change)',
+  'A2': 'Multiple work types',
+  'A3': 'Single minor work type',
   // Demolition
-  'Demolition': 'Demolition',
-  'DM': 'Demolition',
-  'Full Demolition': 'Full Demolition',
-  'Partial Demolition': 'Partial Demolition',
+  'Demolition': 'Building demolition',
+  'DM': 'Building demolition',
+  'Full Demolition': 'Complete demolition',
+  'Partial Demolition': 'Partial demolition',
   // Work types
-  'Scaffold': 'Scaffolding',
-  'Equipment': 'Equipment Install',
-  'Equipment Work': 'Equipment Install',
-  'Plumbing': 'Plumbing',
-  'PL': 'Plumbing',
-  'Mechanical': 'Mechanical',
-  'MH': 'Mechanical',
-  'Electrical': 'Electrical',
-  'EL': 'Electrical',
-  'Boiler': 'Boiler',
-  'BL': 'Boiler',
-  'Sprinkler': 'Sprinkler System',
-  'SP': 'Sprinkler System',
-  'Standpipe': 'Standpipe System',
-  'SD': 'Standpipe System',
-  'Sign': 'Signage',
-  'SG': 'Signage',
-  'Filing': 'Amendment',
+  'Scaffold': 'Scaffolding installation',
+  'Equipment': 'Equipment installation',
+  'Equipment Work': 'Equipment installation',
+  'Plumbing': 'Plumbing work',
+  'PL': 'Plumbing work',
+  'Mechanical': 'HVAC / elevator work',
+  'MH': 'HVAC / elevator work',
+  'Electrical': 'Electrical work',
+  'EL': 'Electrical work',
+  'Boiler': 'Boiler work',
+  'BL': 'Boiler work',
+  'Sprinkler': 'Fire sprinkler system',
+  'SP': 'Fire sprinkler system',
+  'Standpipe': 'Firefighting water supply',
+  'SD': 'Firefighting water supply',
+  'Sign': 'Signage installation',
+  'SG': 'Signage installation',
+  'Filing': 'Amendment to existing job',
 };
 
 const JOB_TYPE_EXPLANATIONS: Record<string, string> = {
@@ -117,6 +117,25 @@ const JOB_TYPE_EXPLANATIONS: Record<string, string> = {
   'Sign': 'Installation or modification of building signage',
   'SG': 'Installation or modification of building signage',
   'Filing': 'Subsequent filing or amendment to an existing job',
+};
+
+// DOB NOW job status labels (human-readable with status indicators)
+const JOB_STATUS_LABELS: Record<string, { label: string; emoji?: string; color?: string; animate?: boolean }> = {
+  'Job in Process': { label: 'In Progress', emoji: '◌', color: 'text-blue-600', animate: true },
+  'Permit Issued': { label: 'Permitted', emoji: '✓', color: 'text-green-600' },
+  'Sign-Off': { label: 'Completed', emoji: '✓', color: 'text-green-600' },
+  'Disapproved': { label: 'Disapproved', emoji: '✗', color: 'text-red-600' },
+};
+
+// DOB NOW filing status labels (human-readable with status indicators)
+const FILING_STATUS_LABELS: Record<string, { label: string; emoji?: string; color?: string }> = {
+  'Permit Entire': { label: 'Permit issued, work can start', emoji: '✓', color: 'text-green-600' },
+  'Permit Partial': { label: 'Partial permit only', emoji: '◐', color: 'text-amber-600' },
+  'Filing Withdrawn': { label: 'Cancelled by applicant', emoji: '✗', color: 'text-red-600' },
+  'Filing Rejected': { label: 'Rejected by city', emoji: '✗', color: 'text-red-600' },
+  'Filing Complete': { label: 'Application submitted', emoji: '✓', color: 'text-blue-600' },
+  'Plan Exam Approved': { label: 'Plans approved, awaiting permit', emoji: '✓', color: 'text-amber-600' },
+  'Initial': { label: 'Application started', color: 'text-slate-600' },
 };
 
 // Certainty badge colors
@@ -382,7 +401,15 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                     {/* Type with optional tooltip */}
                     {(() => {
                       const explanation = JOB_TYPE_EXPLANATIONS[group.sourceType] || JOB_TYPE_EXPLANATIONS[group.description];
+                      const isViolationType = group.sourceType === 'Violation';
 
+                      if (isViolationType) {
+                        return (
+                          <span className="text-sm font-medium text-red-600">
+                            ⚠ Violation
+                          </span>
+                        );
+                      }
                       if (explanation) {
                         return (
                           <Tooltip content={explanation} position="top">
@@ -426,6 +453,18 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                               label={item.sourceId!}
                               href={`https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}`}
                               tooltip="View property profile on BISWeb"
+                            />
+                          </span>
+                        );
+                      }
+                      const isComplaint = !!item.complaintDetails;
+                      if (isComplaint && bin) {
+                        return (
+                          <span key={i} onClick={(e) => e.stopPropagation()}>
+                            <ExternalLinkBadge
+                              label={item.sourceId!}
+                              href={`https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}`}
+                              tooltip="View complaint on BISWeb"
                             />
                           </span>
                         );
@@ -531,20 +570,40 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                             {isWithdrawn ? (
                               <>
                                 <span className="text-slate-400">Status</span>
-                                <span className="text-red-600 font-medium">Withdrawn</span>
+                                <span className="text-red-600 font-medium">✗ Withdrawn</span>
                               </>
-                            ) : dob.jobStatus && (
-                              <>
-                                <span className="text-slate-400">Status</span>
-                                <span className="text-slate-600 font-medium">{dob.jobStatus}</span>
-                              </>
-                            )}
-                            {!isWithdrawn && dob.filingStatus && (
-                              <>
-                                <span className="text-slate-400">Filing</span>
-                                <span className="text-slate-600">{dob.filingStatus}</span>
-                              </>
-                            )}
+                            ) : dob.jobStatus && (() => {
+                              const status = JOB_STATUS_LABELS[dob.jobStatus];
+                              const label = status?.label || dob.jobStatus;
+                              const color = status?.color || 'text-slate-600';
+                              return (
+                                <>
+                                  <span className="text-slate-400">Status</span>
+                                  <span className={`${color} font-medium flex items-center gap-1`}>
+                                    {status?.animate ? (
+                                      <span className="inline-block w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : status?.emoji ? (
+                                      <span>{status.emoji}</span>
+                                    ) : null}
+                                    {label}
+                                  </span>
+                                </>
+                              );
+                            })()}
+                            {!isWithdrawn && dob.filingStatus && (() => {
+                              const status = FILING_STATUS_LABELS[dob.filingStatus];
+                              const label = status?.label || dob.filingStatus;
+                              const color = status?.color || 'text-slate-600';
+                              return (
+                                <>
+                                  <span className="text-slate-400">Filing</span>
+                                  <span className={`${color} font-medium`}>
+                                    {status?.emoji && <span className="mr-1">{status.emoji}</span>}
+                                    {label}
+                                  </span>
+                                </>
+                              );
+                            })()}
                             {dob.jobType && (() => {
                               const label = JOB_TYPE_LABELS[dob.jobType] || dob.jobType;
                               const explanation = JOB_TYPE_EXPLANATIONS[dob.jobType];
@@ -1008,22 +1067,24 @@ export default function DetailPanel() {
                       <span className="text-slate-500 text-xs w-16">IDs</span>
                       <div className="flex gap-2">
                         {bin && (
-                          <button
-                            onClick={() => navigator.clipboard.writeText(bin)}
-                            title="Click to copy BIN"
-                            className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
-                          >
-                            BIN {bin}
-                          </button>
+                          <Tooltip content="Building ID Number - unique ID for each building structure. Click to copy." position="top">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(bin)}
+                              className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                            >
+                              BIN {bin}
+                            </button>
+                          </Tooltip>
                         )}
                         {bbl && (
-                          <button
-                            onClick={() => navigator.clipboard.writeText(bbl)}
-                            title="Click to copy BBL"
-                            className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
-                          >
-                            BBL {bbl}
-                          </button>
+                          <Tooltip content="Borough-Block-Lot - unique ID for each tax lot (land parcel). Click to copy." position="top">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(bbl)}
+                              className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                            >
+                              BBL {bbl}
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                     </div>
