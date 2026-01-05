@@ -4,6 +4,20 @@
 
 ### Implemented
 - [x] DOB NOW API - Job details, status, owner, architect, BIN
+- [x] DOB NOW GlobalSearch API - Real-time job lookup by job number
+
+### NYC Open Data (Socrata API)
+Bulk datasets with historical data, queryable via REST API:
+
+- [ ] **DOB NOW: Job Application Filings** - All job filings
+  - URL: `https://data.cityofnewyork.us/resource/w9ak-ipjd.json`
+  - Query: `?job_filing_number=3A26413` or `?bin=3065247`
+  - Data: Job type, description, owner, status, dates, professional info
+  - Note: Updated weekly, great for bulk enrichment
+
+- [ ] **DOB NOW: Approved Permits** - Issued permits only
+  - URL: `https://data.cityofnewyork.us/resource/rbx6-tga4.json`
+  - Query: `?bin=3065247`
 
 ### To Implement
 Fetch and display data from these additional NYC data sources:

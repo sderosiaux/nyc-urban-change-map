@@ -114,7 +114,7 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           return {
-            sourceType: formatEventType(event.eventType),
+            sourceType: formatEventType(event.eventType, event.source),
             sourceId,
             description: formatEventDescription(event),
             agency: getAgency(rawData, event.source),
@@ -132,46 +132,101 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-function formatEventType(type: string): string {
+function formatEventType(type: string, source?: string): string {
+  // Source-specific labels
+  if (source === 'dob-complaints') return 'Complaint';
+  if (source === 'dob-violations') return 'Violation';
+
   const labels: Record<string, string> = {
-    new_building: 'Nouvel immeuble',
-    major_alteration: 'Rénovation majeure',
-    minor_alteration: 'Rénovation mineure',
-    demolition: 'Démolition',
-    scaffold: 'Échafaudage',
-    equipment_work: 'Travaux d\'équipement',
-    plumbing: 'Plomberie',
-    mechanical: 'Mécanique',
-    ulurp_filed: 'Dossier déposé',
-    ulurp_approved: 'Dossier approuvé',
-    zap_filed: 'Demande déposée',
-    zap_approved: 'Demande approuvée',
-    capital_project: 'Projet public',
-    construction_started: 'Début des travaux',
-    construction_completed: 'Fin des travaux',
+    new_building: 'New Building',
+    major_alteration: 'Major Alteration',
+    minor_alteration: 'Minor Alteration',
+    demolition: 'Demolition',
+    scaffold: 'Scaffold',
+    equipment_work: 'Equipment',
+    plumbing: 'Plumbing',
+    mechanical: 'Mechanical',
+    ulurp_filed: 'ULURP Filed',
+    ulurp_approved: 'ULURP Approved',
+    zap_filed: 'ZAP Filed',
+    zap_approved: 'ZAP Approved',
+    capital_project: 'Capital Project',
+    construction_started: 'Construction Started',
+    construction_completed: 'Construction Completed',
+    other: 'Filing',
   };
   return labels[type] ?? type;
 }
 
+// DOB Complaint category codes - common ones
+const COMPLAINT_CATEGORIES: Record<string, string> = {
+  '01': 'Accident - Construction',
+  '02': 'Adjacent Building',
+  '03': 'Boiler',
+  '04': 'Elevator',
+  '05': 'Plumbing',
+  '06': 'Building Shaking',
+  '07': 'Crane',
+  '08': 'Debris/Falling Material',
+  '09': 'Electrical',
+  '10': 'Excavation',
+  '11': 'Facade',
+  '12': 'Failure to Maintain',
+  '13': 'Fence',
+  '14': 'Gas',
+  '15': 'Illegal Conversion',
+  '16': 'Interior Demo',
+  '17': 'Landmark Building',
+  '18': 'Material Storage',
+  '19': 'Mechanical',
+  '20': 'Curb Cut',
+  '21': 'Illegal Use',
+  '23': 'Scaffold',
+  '24': 'Sidewalk Shed',
+  '25': 'Site Safety',
+  '26': 'SRO',
+  '27': 'Structural',
+  '29': 'Demolition',
+  '30': 'Sign/Awning',
+  '31': 'Work Contrary',
+  '45': 'Illegal Work',
+  '49': 'Non-Compliance',
+  '50': 'Structural Stability',
+  '58': 'Support of Excavation',
+  '59': 'Unsafe Conditions',
+  '63': 'Permit Condition',
+  '66': 'Illegal Apartments',
+  '71': 'Unlicensed/Illegal Work',
+  '74': 'Illegal SRO',
+  '81': 'After Hours',
+  '83': 'No Permit',
+  '8A': 'Work Without Permit',
+};
+
 function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
   const rawData = event.rawData as Record<string, unknown> | null;
-  if (!rawData) return formatEventType(event.eventType);
+  if (!rawData) return formatEventType(event.eventType, event.source);
 
   // Source-specific description extraction
   switch (event.source) {
     case 'capital':
-      return (rawData['description'] as string) ?? formatEventType(event.eventType);
+      return (rawData['description'] as string) ?? formatEventType(event.eventType, event.source);
     case 'dob':
     case 'dob-now':
-      return (rawData['job_description'] as string) ?? formatEventType(event.eventType);
-    case 'dob-complaints':
-      return (rawData['complaint_category'] as string) ?? formatEventType(event.eventType);
+      return (rawData['job_description'] as string) ?? formatEventType(event.eventType, event.source);
+    case 'dob-complaints': {
+      const category = rawData['complaint_category'] as string | undefined;
+      if (category) {
+        return COMPLAINT_CATEGORIES[category] ?? `Category ${category}`;
+      }
+      return 'Unknown Complaint';
+    }
     case 'dob-violations':
-      return (rawData['violation_type'] as string) ?? formatEventType(event.eventType);
+      return (rawData['violation_type'] as string) ?? formatEventType(event.eventType, event.source);
     case 'zap':
-      return (rawData['project_name'] as string) ?? formatEventType(event.eventType);
+      return (rawData['project_name'] as string) ?? formatEventType(event.eventType, event.source);
     default:
-      return formatEventType(event.eventType);
+      return formatEventType(event.eventType, event.source);
   }
 }
 
@@ -240,8 +295,22 @@ function getOfficialUrl(event: typeof rawEvents.$inferSelect): string | undefine
     }
     case 'dob-now': {
       // DOB NOW doesn't support direct deep links - link to Job Number search page
-      // User can copy the job filing number from the UI and search
       return 'https://a810-dobnow.nyc.gov/publish/Index.html#!/search';
+    }
+    case 'dob-complaints': {
+      // BISWeb Complaints lookup - requires address, but link to search
+      const bin = rawData['bin'] as string | undefined;
+      if (bin) {
+        return `https://a810-bisweb.nyc.gov/bisweb/ComplaintsByAddressServlet?allbin=${bin}`;
+      }
+      return 'https://a810-bisweb.nyc.gov/bisweb/bsqpm01.jsp';
+    }
+    case 'dob-violations': {
+      const bin = rawData['bin'] as string | undefined;
+      if (bin) {
+        return `https://a810-bisweb.nyc.gov/bisweb/ActionViolationDisplayServlet?allbin=${bin}`;
+      }
+      return 'https://a810-bisweb.nyc.gov/bisweb/bsqpm01.jsp';
     }
     case 'zap': {
       const projectId = rawData['project_id'] as string | undefined;
