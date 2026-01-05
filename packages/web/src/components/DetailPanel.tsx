@@ -732,12 +732,22 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                     {(() => {
                       const explanation = JOB_TYPE_EXPLANATIONS[group.sourceType] || JOB_TYPE_EXPLANATIONS[group.description];
                       const isViolationType = group.sourceType === 'Violation';
+                      const isCivilPenalty = group.sourceType === 'Civil Penalty';
 
                       if (isViolationType) {
                         return (
                           <span className="text-sm font-medium text-red-600">
                             ⚠ Violation
                           </span>
+                        );
+                      }
+                      if (isCivilPenalty) {
+                        return (
+                          <Tooltip content="DOB NOW civil penalty - monetary fine for code violations" position="top">
+                            <span className="text-sm font-medium text-orange-600 cursor-help">
+                              ⚠ Civil Penalty
+                            </span>
+                          </Tooltip>
                         );
                       }
                       if (explanation) {
@@ -765,6 +775,7 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                       if (!item.sourceId) return null;
                       const isZap = item.zapDetails || group.sourceType === 'ULURP Filed' || group.sourceType === 'ZAP';
                       const isViolation = group.sourceType === 'Violation';
+                      const isCivilPenalty = group.sourceType === 'Civil Penalty';
                       if (isZap) {
                         return (
                           <span key={i} onClick={(e) => e.stopPropagation()}>
@@ -783,6 +794,17 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                               label={item.sourceId!}
                               href={`https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}`}
                               tooltip="View property profile on BISWeb"
+                            />
+                          </span>
+                        );
+                      }
+                      if (isCivilPenalty) {
+                        return (
+                          <span key={i} onClick={(e) => e.stopPropagation()}>
+                            <ExternalLinkBadge
+                              label={item.sourceId!}
+                              href="https://a810-dobnow.nyc.gov/publish/Index.html#!/search"
+                              tooltip="Search on DOB NOW (copy violation number)"
                             />
                           </span>
                         );
@@ -868,9 +890,10 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                         const isGenericCeqr = group.officialUrl === 'https://a002-ceqraccess.nyc.gov/ceqr/';
                         // Skip ZAP links (ID is now clickable in header)
                         const isZap = group.officialUrl?.includes('zap.planning.nyc.gov');
-                        // Skip Violation links (ID is now clickable with ExternalLinkBadge)
+                        // Skip Violation/Civil Penalty links (ID is now clickable with ExternalLinkBadge)
                         const isViolation = group.sourceType === 'Violation';
-                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr && !isZap && !isViolation;
+                        const isCivilPenalty = group.sourceType === 'Civil Penalty';
+                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr && !isZap && !isViolation && !isCivilPenalty;
                         // Skip projectType if it matches DOB NOW jobType (avoid duplication)
                         const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
                         const showProjectType = group.projectType && group.projectType !== dobJobType;

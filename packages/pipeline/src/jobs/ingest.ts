@@ -11,11 +11,12 @@ import { fetchAllZAPProjectsWithCoordinates, type NormalizedZAPEvent } from '../
 import { fetchAllCapitalProjectsSince, type NormalizedCapitalEvent } from '../ingest/capital.js';
 import { fetchAllComplaintsSince, type NormalizedComplaint } from '../ingest/dob-complaints.js';
 import { fetchAllViolationsSince, type NormalizedViolation } from '../ingest/dob-violations.js';
+import { fetchAllDOBNowViolationsSince, type NormalizedDOBNowViolation } from '../ingest/dob-now-violations.js';
 import { fetchAllCEQRProjectsSince, type NormalizedCEQREvent } from '../ingest/ceqr.js';
 
 const APP_TOKEN = process.env['NYC_OPEN_DATA_TOKEN'];
 
-type AnyNormalizedEvent = NormalizedEvent | NormalizedDOBNowEvent | NormalizedZAPEvent | NormalizedCapitalEvent | NormalizedComplaint | NormalizedViolation | NormalizedCEQREvent;
+type AnyNormalizedEvent = NormalizedEvent | NormalizedDOBNowEvent | NormalizedZAPEvent | NormalizedCapitalEvent | NormalizedComplaint | NormalizedViolation | NormalizedDOBNowViolation | NormalizedCEQREvent;
 
 interface DataSourceConfig {
   name: string;
@@ -34,6 +35,10 @@ const DATA_SOURCES: DataSourceConfig[] = [
   {
     name: 'dob-violations',
     fetch: (sinceDate, options) => fetchAllViolationsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }) as Promise<AnyNormalizedEvent[]>,
+  },
+  {
+    name: 'dob-now-violations',
+    fetch: (sinceDate, options) => fetchAllDOBNowViolationsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }) as Promise<AnyNormalizedEvent[]>,
   },
   {
     name: 'zap',
@@ -252,6 +257,18 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       latitude: e.latitude,
       longitude: e.longitude,
     };
+  } else if (event.source === 'dob-now-violations') {
+    const e = event as NormalizedDOBNowViolation;
+    return {
+      bin: e.bin,
+      bbl: e.bbl,
+      address: e.address,
+      borough: e.borough,
+      ntaCode: e.ntaCode,
+      communityDistrict: e.communityDistrict,
+      latitude: e.latitude,
+      longitude: e.longitude,
+    };
   } else if (event.source === 'zap') {
     const e = event as NormalizedZAPEvent;
     return {
@@ -300,7 +317,10 @@ function extractEventMeta(event: AnyNormalizedEvent): { eventDate: Date; eventTy
     return { eventDate: e.dateEntered, eventType: 'other' }; // Complaints signal issues
   } else if (event.source === 'dob-violations') {
     const e = event as NormalizedViolation;
-    return { eventDate: e.issueDate, eventType: 'other' }; // Violations signal issues
+    return { eventDate: e.issueDate, eventType: 'other' }; // BISWeb violations
+  } else if (event.source === 'dob-now-violations') {
+    const e = event as NormalizedDOBNowViolation;
+    return { eventDate: e.issueDate, eventType: 'other' }; // DOB NOW violations (civil penalties)
   } else {
     // All other sources have eventDate and eventType
     return { eventDate: (event as NormalizedEvent).eventDate, eventType: (event as NormalizedEvent).eventType };

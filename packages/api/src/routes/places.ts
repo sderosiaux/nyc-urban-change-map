@@ -238,6 +238,7 @@ function formatEventType(type: string, source?: string): string {
   // Source-specific labels
   if (source === 'dob-complaints') return 'Complaint';
   if (source === 'dob-violations') return 'Violation';
+  if (source === 'dob-now-violations') return 'Civil Penalty';
 
   const labels: Record<string, string> = {
     new_building: 'New Building',
@@ -660,6 +661,14 @@ function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
     }
     case 'dob-violations':
       return (rawData['violation_type'] as string) ?? formatEventType(event.eventType, event.source);
+    case 'dob-now-violations': {
+      // DOB NOW violations have violation_remarks (description) and violation_type
+      const remarks = rawData['violation_remarks'] as string | undefined;
+      const vioType = rawData['violation_type'] as string | undefined;
+      if (remarks) return remarks;
+      if (vioType) return vioType;
+      return 'DOB NOW Violation';
+    }
     case 'zap':
       return (rawData['project_name'] as string) ?? formatEventType(event.eventType, event.source);
     default:
@@ -749,6 +758,10 @@ function getOfficialUrl(event: typeof rawEvents.$inferSelect): string | undefine
       }
       return 'https://a810-bisweb.nyc.gov/bisweb/bsqpm01.jsp';
     }
+    case 'dob-now-violations': {
+      // DOB NOW violations - link to search page (can search by violation number)
+      return 'https://a810-dobnow.nyc.gov/publish/Index.html#!/search';
+    }
     case 'zap': {
       const projectId = rawData['project_id'] as string | undefined;
       if (projectId) {
@@ -772,6 +785,7 @@ function getDateLabel(source: string): string {
     'dob-now': 'Filed',
     'dob-complaints': 'Reported',
     'dob-violations': 'Issued',
+    'dob-now-violations': 'Issued',
     zap: 'Filed',
     ceqr: 'Filed',
   };

@@ -6,6 +6,7 @@
 export * from './dob.js';
 export * from './dob-now.js';
 export * from './dob-violations.js';
+export * from './dob-now-violations.js';
 export * from './dob-complaints.js';
 export * from './zap.js';
 export * from './capital.js';

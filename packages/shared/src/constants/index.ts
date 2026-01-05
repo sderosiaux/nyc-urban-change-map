@@ -206,7 +206,8 @@ export const NYC_DATA_ENDPOINTS = {
   dobPermits: `${NYC_OPEN_DATA_BASE}/ipu4-2q9a.json`,      // DOB Permit Issuance - historical (ends 2020)
   dobNow: `${NYC_OPEN_DATA_BASE}/w9ak-ipjd.json`,          // DOB NOW: Job Filings (active, has dates)
   dobComplaints: `${NYC_OPEN_DATA_BASE}/eabe-havv.json`,   // DOB Complaints
-  dobViolations: `${NYC_OPEN_DATA_BASE}/3h2n-5cm9.json`,   // DOB/ECB Violations
+  dobViolations: `${NYC_OPEN_DATA_BASE}/3h2n-5cm9.json`,   // DOB/ECB Violations (BISWeb)
+  dobNowViolations: `${NYC_OPEN_DATA_BASE}/855j-jady.json`, // DOB NOW Safety Violations (civil penalties)
 
   // ==========================================================================
   // Planning (Planification Urbaine)

@@ -6,12 +6,12 @@ const LINKS = [
   {
     label: 'DOB NOW',
     url: 'https://a810-dobnow.nyc.gov/publish/Index.html#!/',
-    description: 'Search building permits, job filings, and applications',
+    description: 'Permits, filings, violations (civil penalties)',
   },
   {
     label: 'BISWeb',
     url: 'https://a810-bisweb.nyc.gov/bisweb/bsqpm01.jsp',
-    description: 'Property info, complaints, violations, certificates',
+    description: 'Property info, complaints, ECB violations',
   },
   {
     label: 'ZAP Search',
