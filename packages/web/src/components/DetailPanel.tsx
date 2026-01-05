@@ -9,7 +9,45 @@ import Tooltip from './Tooltip';
 
 const MIN_WIDTH = 320;
 const MAX_WIDTH = 800;
-const DEFAULT_WIDTH = 384; // w-96 = 24rem = 384px
+const DEFAULT_WIDTH = 480; // Wider default for better readability
+
+// DOB Complaint disposition explanations for tooltips
+const DISPOSITION_EXPLANATIONS: Record<string, string> = {
+  'No Violation Warranted': 'Inspector found no code violation at the time of inspection',
+  'Violation(s) Served': 'Inspector found violations and issued official notice to correct',
+  'ECB Violation Served': 'Environmental Control Board violation issued - may include fines',
+  'ECB & DOB Violations Served': 'Both ECB and DOB violations were issued',
+  'No Access - 1st Attempt': 'Inspector could not access the property (1st try)',
+  'No Access - 2nd Attempt': 'Inspector could not access the property (2nd try) - complaint may be closed',
+  'Access Denied - 1st Attempt': 'Property owner refused inspector access (1st try)',
+  'Access Denied - 2nd Attempt': 'Property owner refused inspector access (2nd try)',
+  'Full Stop Work Order': 'All construction work must cease immediately',
+  'Partial Stop Work Order': 'Some construction work must cease',
+  'Criminal Court Summons Served': 'Serious violation requiring court appearance',
+  'Referred to HPD': 'Complaint forwarded to Housing Preservation & Development',
+  'Referred to FDNY': 'Complaint forwarded to Fire Department',
+  'Referred to DEP': 'Complaint forwarded to Environmental Protection',
+  'Administrative Closure': 'Complaint closed without inspection (duplicate, invalid, etc.)',
+  'Action Filed': 'Legal or enforcement action has been initiated',
+  'Full Vacate Order': 'Building must be evacuated immediately',
+  'Partial Vacate Order': 'Part of building must be evacuated',
+};
+
+// DOB Job type explanations for tooltips
+const JOB_TYPE_EXPLANATIONS: Record<string, string> = {
+  'New Building': 'Construction of an entirely new structure',
+  'Major Alteration': 'Significant changes affecting structural elements, egress, or use',
+  'Minor Alteration': 'Non-structural changes that don\'t affect egress or use',
+  'Demolition': 'Partial or full removal of a structure',
+  'ALT-CO - New Building with Existing Elements to Remain': 'New construction that keeps parts of the original building (foundation, facade, etc.) - requires new Certificate of Occupancy',
+  'Alteration Type 1': 'Major work affecting exits or occupancy - requires new C of O',
+  'Alteration Type 2': 'Multiple work types without changing exits or occupancy',
+  'Alteration Type 3': 'One type of minor work (plumbing, mechanical, etc.)',
+  'Scaffold': 'Temporary structure for construction access',
+  'Equipment': 'Installation of mechanical/electrical equipment',
+  'Plumbing': 'Plumbing system installation or modification',
+  'Filing': 'Subsequent filing related to an existing job',
+};
 
 // Certainty badge colors
 const CERTAINTY_STYLES = {
@@ -26,6 +64,356 @@ const NATURE_STYLES = {
   demolition: { bg: 'bg-red-100', text: 'text-red-700', label: 'Demolition' },
   mixed: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Mixed' },
 } as const;
+
+// Activity Timeline component with collapsible closed complaints
+interface SourceSummary {
+  sourceType: string;
+  sourceId?: string;
+  description: string;
+  agency?: string;
+  projectType?: string;
+  filedDate?: string;
+  officialUrl?: string;
+  dobNowDetails?: {
+    bin?: string;
+    jobStatus?: string;
+    filingStatus?: string;
+    jobType?: string;
+    floors?: string;
+  };
+  complaintDetails?: {
+    status: string;
+    category: string;
+    categoryCode: string;
+    disposition?: string;
+    inspectionDate?: string;
+  };
+}
+
+function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; formatDate: (d: string | undefined | null) => string }) {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  if (!sources || sources.length === 0) return null;
+
+  // Group similar sources by month + type + description
+  type SourceGroup = {
+    key: string;
+    month: string;
+    sourceType: string;
+    description: string;
+    items: SourceSummary[];
+    officialUrl?: string;
+    agency?: string;
+    projectType?: string;
+  };
+
+  const groups: SourceGroup[] = [];
+  const groupMap = new Map<string, SourceGroup>();
+
+  for (const source of sources) {
+    const month = source.filedDate ? formatDate(source.filedDate) : 'No date';
+    const key = `${month}|${source.sourceType}|${source.description}`;
+
+    if (groupMap.has(key)) {
+      groupMap.get(key)!.items.push(source);
+    } else {
+      const group: SourceGroup = {
+        key,
+        month,
+        sourceType: source.sourceType,
+        description: source.description,
+        items: [source],
+        officialUrl: source.officialUrl,
+        agency: source.agency,
+        projectType: source.projectType,
+      };
+      groupMap.set(key, group);
+      groups.push(group);
+    }
+  }
+
+  // Find complaints URL (same for all complaints at this building)
+  const complaintsUrl = sources.find(s => s.complaintDetails)?.officialUrl;
+
+  const toggleExpand = (key: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-slate-900">
+          Activity ({sources.length})
+        </h3>
+        {complaintsUrl && (
+          <a
+            href={complaintsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
+          >
+            View complaints on BISWeb →
+          </a>
+        )}
+      </div>
+      <div className="relative">
+        {/* Vertical timeline line */}
+        <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-slate-200" />
+
+        <div className="space-y-0">
+          {groups.map((group) => {
+            const complaint = group.items[0]?.complaintDetails;
+            const isClosed = complaint?.status === 'CLOSED';
+            const isExpanded = expandedItems.has(group.key);
+            const isCollapsible = isClosed && complaint;
+
+            return (
+              <div
+                key={group.key}
+                className={`relative flex gap-4 pb-4 last:pb-0 ${isClosed && !isExpanded ? 'opacity-60' : ''}`}
+              >
+                {/* Timeline dot */}
+                <div className="relative z-10 flex-shrink-0">
+                  <div className={`w-6 h-6 rounded-full bg-white border-2 ${
+                    group.items.length > 1 ? 'border-blue-400' :
+                    isClosed ? 'border-slate-200' : 'border-slate-300'
+                  } flex items-center justify-center`}>
+                    {group.items.length > 1 ? (
+                      <span className="text-[10px] font-medium text-blue-600">{group.items.length}</span>
+                    ) : (
+                      <div className={`w-2 h-2 rounded-full ${isClosed ? 'bg-slate-300' : 'bg-slate-400'}`} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 pt-0.5">
+                  {/* Header row: Date, type, IDs, status - clickable for closed complaints */}
+                  <div
+                    className={`flex items-center gap-2 flex-wrap ${isCollapsible ? 'cursor-pointer' : ''}`}
+                    onClick={isCollapsible ? () => toggleExpand(group.key) : undefined}
+                  >
+                    <span className={`text-sm font-semibold tabular-nums ${isClosed ? 'text-slate-500' : 'text-slate-900'}`}>
+                      {group.month}
+                    </span>
+                    {/* Type with optional tooltip */}
+                    {(() => {
+                      const explanation = JOB_TYPE_EXPLANATIONS[group.sourceType] || JOB_TYPE_EXPLANATIONS[group.description];
+
+                      if (explanation) {
+                        return (
+                          <Tooltip content={explanation} position="top">
+                            <span className={`text-sm cursor-help border-b border-dotted ${isClosed ? 'text-slate-400 border-slate-300' : 'text-slate-600 border-slate-400'}`}>
+                              {group.sourceType}
+                            </span>
+                          </Tooltip>
+                        );
+                      }
+                      return (
+                        <span className={`text-sm ${isClosed ? 'text-slate-400' : 'text-slate-600'}`}>
+                          {group.sourceType}
+                        </span>
+                      );
+                    })()}
+                    {group.items.length > 1 && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                        ×{group.items.length}
+                      </span>
+                    )}
+                    {/* IDs inline */}
+                    {group.items.map((item, i) => item.sourceId && (
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(item.sourceId!);
+                        }}
+                        title="Click to copy"
+                        className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono"
+                      >
+                        {item.sourceId}
+                      </button>
+                    ))}
+                    {/* Expand indicator for closed complaints */}
+                    {isCollapsible && (
+                      <span className="text-xs text-slate-400 ml-auto">
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Expanded content OR non-complaint content */}
+                  {(!isCollapsible || isExpanded) && (
+                    <>
+                      {/* Description */}
+                      {(() => {
+                        if (complaint) {
+                          if (complaint.category.startsWith('Category ')) return null;
+                          return (
+                            <div className={`text-sm mt-0.5 ${isClosed ? 'text-slate-400' : 'text-slate-500'}`}>
+                              <Tooltip content={`Code: ${complaint.categoryCode}`} position="top">
+                                <span className="cursor-help border-b border-dotted border-slate-300">
+                                  {complaint.category}
+                                </span>
+                              </Tooltip>
+                            </div>
+                          );
+                        }
+                        // Skip description if it matches sourceType or DOB NOW jobType (avoid duplication)
+                        const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
+                        if (group.description !== group.sourceType && group.description !== dobJobType) {
+                          const explanation = JOB_TYPE_EXPLANATIONS[group.description];
+                          if (explanation) {
+                            return (
+                              <div className="text-sm text-slate-500 mt-0.5">
+                                <Tooltip content={explanation} position="top">
+                                  <span className="cursor-help border-b border-dotted border-slate-400">
+                                    {group.description}
+                                  </span>
+                                </Tooltip>
+                              </div>
+                            );
+                          }
+                          return <div className="text-sm text-slate-500 mt-0.5">{group.description}</div>;
+                        }
+                        return null;
+                      })()}
+
+                      {/* Metadata row */}
+                      {(() => {
+                        const isComplaint = !!complaint;
+                        const showUrl = group.officialUrl && !isComplaint;
+                        if (!group.agency && !group.projectType && !showUrl) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-400">
+                            {group.agency && <span>{group.agency}</span>}
+                            {group.projectType && <span>{group.projectType}</span>}
+                            {showUrl && (
+                              <a href={group.officialUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 hover:underline">
+                                View →
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* DOB NOW enriched details */}
+                      {(() => {
+                        const firstWithDetails = group.items.find(item => item.dobNowDetails);
+                        if (!firstWithDetails?.dobNowDetails) return null;
+                        const dob = firstWithDetails.dobNowDetails;
+                        return (
+                          <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            {dob.jobStatus && (
+                              <>
+                                <span className="text-slate-400">Status</span>
+                                <span className="text-slate-600 font-medium">{dob.jobStatus}</span>
+                              </>
+                            )}
+                            {dob.filingStatus && (
+                              <>
+                                <span className="text-slate-400">Filing</span>
+                                <span className="text-slate-600">{dob.filingStatus}</span>
+                              </>
+                            )}
+                            {dob.jobType && (
+                              <>
+                                <span className="text-slate-400">Type</span>
+                                <span className="text-slate-600">{dob.jobType}</span>
+                              </>
+                            )}
+                            {dob.floors && (() => {
+                              const rangeMatch = dob.floors.match(/(\d+)\s+through\s+(\d+)/i);
+                              if (rangeMatch?.[1] && rangeMatch?.[2]) {
+                                return (
+                                  <>
+                                    <span className="text-slate-400">Floors</span>
+                                    <span className="text-slate-600">{rangeMatch[1]}-{rangeMatch[2]}</span>
+                                  </>
+                                );
+                              }
+                              const floors = dob.floors.split(',').map(f => f.trim()).filter(Boolean);
+                              return (
+                                <>
+                                  <span className="text-slate-400">Floors</span>
+                                  <span className="text-slate-600">{floors.length} floor{floors.length > 1 ? 's' : ''}</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Complaint enriched details */}
+                      {(() => {
+                        const firstWithComplaint = group.items.find(item => item.complaintDetails);
+                        if (!firstWithComplaint?.complaintDetails) return null;
+                        const c = firstWithComplaint.complaintDetails;
+                        const dispositionExplanation = c.disposition ? DISPOSITION_EXPLANATIONS[c.disposition] : undefined;
+
+                        // Calculate delay
+                        const filedDate = firstWithComplaint.filedDate ? new Date(firstWithComplaint.filedDate) : null;
+                        const inspectionDate = c.inspectionDate ? new Date(c.inspectionDate) : null;
+                        let delayText = '';
+                        if (filedDate && inspectionDate && inspectionDate > filedDate) {
+                          const diffDays = Math.floor((inspectionDate.getTime() - filedDate.getTime()) / (1000 * 60 * 60 * 24));
+                          if (diffDays < 7) delayText = diffDays === 1 ? '1 day later' : `${diffDays} days later`;
+                          else if (diffDays < 30) delayText = `${Math.floor(diffDays / 7)} weeks later`;
+                          else if (diffDays < 365) delayText = `${Math.floor(diffDays / 30)} months later`;
+                          else {
+                            const years = Math.floor(diffDays / 365);
+                            const months = Math.floor((diffDays % 365) / 30);
+                            delayText = months > 0 ? `${years}y ${months}mo later` : `${years} year${years > 1 ? 's' : ''} later`;
+                          }
+                        }
+
+                        return (
+                          <div className="mt-1.5 space-y-1">
+                            {c.inspectionDate && (
+                              <div className="text-xs text-slate-400">
+                                <Tooltip content="Date when DOB inspector visited the property" position="right">
+                                  <span className="cursor-help border-b border-dotted border-slate-300">Inspection</span>
+                                </Tooltip>
+                                : {c.inspectionDate}
+                                {delayText && <span> ({delayText})</span>}
+                              </div>
+                            )}
+                            {c.disposition && (
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="text-slate-400">Outcome:</span>
+                                {dispositionExplanation ? (
+                                  <Tooltip content={dispositionExplanation} position="top">
+                                    <span className={`cursor-help border-b border-dotted ${isClosed ? 'text-slate-500 border-slate-300' : 'text-slate-600 border-slate-400'}`}>
+                                      {c.disposition}
+                                    </span>
+                                  </Tooltip>
+                                ) : (
+                                  <span className={isClosed ? 'text-slate-500' : 'text-slate-600'}>{c.disposition}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DetailPanel() {
   const { closeDetailPanel } = useViewStore();
@@ -393,178 +781,7 @@ export default function DetailPanel() {
             )}
 
             {/* Activity Feed / Sources Timeline */}
-            {detail.sources && detail.sources.length > 0 && (() => {
-              // Group similar sources by month + type + description
-              type SourceGroup = {
-                key: string;
-                month: string;
-                sourceType: string;
-                description: string;
-                items: typeof detail.sources;
-                officialUrl?: string;
-                agency?: string;
-                projectType?: string;
-              };
-
-              const groups: SourceGroup[] = [];
-              const groupMap = new Map<string, SourceGroup>();
-
-              for (const source of detail.sources!) {
-                const month = source.filedDate ? formatDate(source.filedDate) : 'No date';
-                const key = `${month}|${source.sourceType}|${source.description}`;
-
-                if (groupMap.has(key)) {
-                  groupMap.get(key)!.items!.push(source);
-                } else {
-                  const group: SourceGroup = {
-                    key,
-                    month,
-                    sourceType: source.sourceType,
-                    description: source.description,
-                    items: [source],
-                    officialUrl: source.officialUrl,
-                    agency: source.agency,
-                    projectType: source.projectType,
-                  };
-                  groupMap.set(key, group);
-                  groups.push(group);
-                }
-              }
-
-              return (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-900 mb-4">
-                    Activity ({detail.sources.length})
-                  </h3>
-                  <div className="relative">
-                    {/* Vertical timeline line */}
-                    <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-slate-200" />
-
-                    <div className="space-y-0">
-                      {groups.map((group, index) => (
-                        <div key={index} className="relative flex gap-4 pb-4 last:pb-0">
-                          {/* Timeline dot */}
-                          <div className="relative z-10 flex-shrink-0">
-                            <div className={`w-6 h-6 rounded-full bg-white border-2 ${group.items!.length > 1 ? 'border-blue-400' : 'border-slate-300'} flex items-center justify-center`}>
-                              {group.items!.length > 1 ? (
-                                <span className="text-[10px] font-medium text-blue-600">{group.items!.length}</span>
-                              ) : (
-                                <div className="w-2 h-2 rounded-full bg-slate-400" />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            {/* Header row: Date, type, count */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                                {group.month}
-                              </span>
-                              <span className="text-sm text-slate-600">
-                                {group.sourceType}
-                              </span>
-                              {group.items!.length > 1 && (
-                                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                                  ×{group.items!.length}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Description */}
-                            <div className="text-sm text-slate-500 mt-0.5">
-                              {group.description}
-                            </div>
-
-                            {/* IDs row - compact */}
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {group.items!.map((item, i) => item.sourceId && (
-                                <button
-                                  key={i}
-                                  onClick={() => navigator.clipboard.writeText(item.sourceId!)}
-                                  title="Click to copy"
-                                  className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono"
-                                >
-                                  {item.sourceId}
-                                </button>
-                              ))}
-                            </div>
-
-                            {/* Metadata row */}
-                            {(group.agency || group.projectType || group.officialUrl) && (
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-400">
-                                {group.agency && <span>{group.agency}</span>}
-                                {group.projectType && <span>{group.projectType}</span>}
-                                {group.officialUrl && (
-                                  <a
-                                    href={group.officialUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-500 hover:text-blue-700 hover:underline"
-                                  >
-                                    View →
-                                  </a>
-                                )}
-                              </div>
-                            )}
-
-                          {/* DOB NOW enriched details - show from first item only */}
-                          {(() => {
-                            const firstWithDetails = group.items!.find(item => item.dobNowDetails);
-                            if (!firstWithDetails?.dobNowDetails) return null;
-                            const dob = firstWithDetails.dobNowDetails;
-                            return (
-                              <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                {dob.jobStatus && (
-                                  <>
-                                    <span className="text-slate-400">Status</span>
-                                    <span className="text-slate-600 font-medium">{dob.jobStatus}</span>
-                                  </>
-                                )}
-                                {dob.filingStatus && (
-                                  <>
-                                    <span className="text-slate-400">Filing</span>
-                                    <span className="text-slate-600">{dob.filingStatus}</span>
-                                  </>
-                                )}
-                                {dob.jobType && (
-                                  <>
-                                    <span className="text-slate-400">Type</span>
-                                    <span className="text-slate-600">{dob.jobType}</span>
-                                  </>
-                                )}
-                                {dob.floors && (() => {
-                                  const raw = dob.floors;
-                                  // Simplify floor display
-                                  const rangeMatch = raw.match(/(\d+)\s+through\s+(\d+)/i);
-                                  if (rangeMatch?.[1] && rangeMatch?.[2]) {
-                                    return (
-                                      <>
-                                        <span className="text-slate-400">Floors</span>
-                                        <span className="text-slate-600">{rangeMatch[1]}-{rangeMatch[2]}</span>
-                                      </>
-                                    );
-                                  }
-                                  // Count unique floors
-                                  const floors = raw.split(',').map(f => f.trim()).filter(Boolean);
-                                  return (
-                                    <>
-                                      <span className="text-slate-400">Floors</span>
-                                      <span className="text-slate-600">{floors.length} floor{floors.length > 1 ? 's' : ''}</span>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-            })()}
+            <ActivityTimeline sources={detail.sources} formatDate={formatDate} />
           </div>
         )}
       </div>

@@ -276,6 +276,16 @@ export interface SourceSummary {
     jobType?: string;
     floors?: string;
   };
+  // DOB Complaint enrichment
+  complaintDetails?: {
+    status: string;                    // OPEN, CLOSED
+    category: string;                  // Human-readable category
+    categoryCode: string;              // e.g., "8A", "91"
+    disposition?: string;              // Human-readable disposition
+    dispositionCode?: string;          // e.g., "I2", "AF"
+    inspectionDate?: string;
+    dispositionDate?: string;
+  };
 }
 
 // =============================================================================
