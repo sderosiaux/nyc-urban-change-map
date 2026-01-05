@@ -33,20 +33,89 @@ const DISPOSITION_EXPLANATIONS: Record<string, string> = {
   'Partial Vacate Order': 'Part of building must be evacuated',
 };
 
-// DOB Job type explanations for tooltips
+// DOB Job type labels (human-readable) and explanations
+const JOB_TYPE_LABELS: Record<string, string> = {
+  // New construction
+  'New Building': 'New Construction',
+  'NB': 'New Construction',
+  // Alterations
+  'Alteration': 'Alteration',
+  'Alteration CO': 'Major Renovation',
+  'ALT-CO': 'Major Renovation',
+  'ALT-CO - New Building with Existing Elements to Remain': 'Partial Rebuild',
+  'Alteration Type 1': 'Major Alteration',
+  'Alteration Type 2': 'Multiple Work Types',
+  'Alteration Type 3': 'Minor Work',
+  'A1': 'Major Alteration',
+  'A2': 'Multiple Work Types',
+  'A3': 'Minor Work',
+  // Demolition
+  'Demolition': 'Demolition',
+  'DM': 'Demolition',
+  'Full Demolition': 'Full Demolition',
+  'Partial Demolition': 'Partial Demolition',
+  // Work types
+  'Scaffold': 'Scaffolding',
+  'Equipment': 'Equipment Install',
+  'Equipment Work': 'Equipment Install',
+  'Plumbing': 'Plumbing',
+  'PL': 'Plumbing',
+  'Mechanical': 'Mechanical',
+  'MH': 'Mechanical',
+  'Electrical': 'Electrical',
+  'EL': 'Electrical',
+  'Boiler': 'Boiler',
+  'BL': 'Boiler',
+  'Sprinkler': 'Sprinkler System',
+  'SP': 'Sprinkler System',
+  'Standpipe': 'Standpipe System',
+  'SD': 'Standpipe System',
+  'Sign': 'Signage',
+  'SG': 'Signage',
+  'Filing': 'Amendment',
+};
+
 const JOB_TYPE_EXPLANATIONS: Record<string, string> = {
+  // New construction
   'New Building': 'Construction of an entirely new structure',
+  'NB': 'Construction of an entirely new structure',
+  // Alterations
+  'Alteration': 'Modification to an existing building',
+  'Alteration CO': 'Major renovation requiring a new Certificate of Occupancy - changes building use or layout significantly',
+  'ALT-CO': 'Major renovation requiring a new Certificate of Occupancy - changes building use or layout significantly',
+  'ALT-CO - New Building with Existing Elements to Remain': 'New construction keeping parts of original building (foundation, facade) - requires new C of O',
   'Major Alteration': 'Significant changes affecting structural elements, egress, or use',
   'Minor Alteration': 'Non-structural changes that don\'t affect egress or use',
-  'Demolition': 'Partial or full removal of a structure',
-  'ALT-CO - New Building with Existing Elements to Remain': 'New construction that keeps parts of the original building (foundation, facade, etc.) - requires new Certificate of Occupancy',
-  'Alteration Type 1': 'Major work affecting exits or occupancy - requires new C of O',
+  'Alteration Type 1': 'Major work affecting exits or occupancy - requires new Certificate of Occupancy',
   'Alteration Type 2': 'Multiple work types without changing exits or occupancy',
   'Alteration Type 3': 'One type of minor work (plumbing, mechanical, etc.)',
+  'A1': 'Major work affecting exits or occupancy - requires new Certificate of Occupancy',
+  'A2': 'Multiple work types without changing exits or occupancy',
+  'A3': 'One type of minor work (plumbing, mechanical, etc.)',
+  // Demolition
+  'Demolition': 'Partial or full removal of a structure',
+  'DM': 'Partial or full removal of a structure',
+  'Full Demolition': 'Complete removal of a structure',
+  'Partial Demolition': 'Removal of part of a structure',
+  // Work types
   'Scaffold': 'Temporary structure for construction access',
   'Equipment': 'Installation of mechanical/electrical equipment',
+  'Equipment Work': 'Installation of mechanical/electrical equipment',
   'Plumbing': 'Plumbing system installation or modification',
-  'Filing': 'Subsequent filing related to an existing job',
+  'PL': 'Plumbing system installation or modification',
+  'Mechanical': 'HVAC, elevators, or other mechanical systems',
+  'MH': 'HVAC, elevators, or other mechanical systems',
+  'Electrical': 'Electrical system installation or modification',
+  'EL': 'Electrical system installation or modification',
+  'Boiler': 'Boiler installation, replacement, or modification',
+  'BL': 'Boiler installation, replacement, or modification',
+  'Sprinkler': 'Fire sprinkler system installation or modification',
+  'SP': 'Fire sprinkler system installation or modification',
+  'Standpipe': 'Standpipe system for firefighting water supply',
+  'SD': 'Standpipe system for firefighting water supply',
+  'Sign': 'Installation or modification of building signage',
+  'SG': 'Installation or modification of building signage',
+  'Filing': 'Subsequent filing or amendment to an existing job',
 };
 
 // Certainty badge colors
@@ -291,11 +360,14 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                       {(() => {
                         const isComplaint = !!complaint;
                         const showUrl = group.officialUrl && !isComplaint;
-                        if (!group.agency && !group.projectType && !showUrl) return null;
+                        // Skip projectType if it matches DOB NOW jobType (avoid duplication)
+                        const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
+                        const showProjectType = group.projectType && group.projectType !== dobJobType;
+                        if (!group.agency && !showProjectType && !showUrl) return null;
                         return (
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-400">
                             {group.agency && <span>{group.agency}</span>}
-                            {group.projectType && <span>{group.projectType}</span>}
+                            {showProjectType && <span>{group.projectType}</span>}
                             {showUrl && (
                               <a href={group.officialUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 hover:underline">
                                 View →
@@ -324,12 +396,28 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                                 <span className="text-slate-600">{dob.filingStatus}</span>
                               </>
                             )}
-                            {dob.jobType && (
-                              <>
-                                <span className="text-slate-400">Type</span>
-                                <span className="text-slate-600">{dob.jobType}</span>
-                              </>
-                            )}
+                            {dob.jobType && (() => {
+                              const label = JOB_TYPE_LABELS[dob.jobType] || dob.jobType;
+                              const explanation = JOB_TYPE_EXPLANATIONS[dob.jobType];
+                              // Include DOB code in tooltip if label differs from raw code
+                              const tooltipContent = explanation
+                                ? (label !== dob.jobType ? `${dob.jobType} — ${explanation}` : explanation)
+                                : (label !== dob.jobType ? `DOB code: ${dob.jobType}` : null);
+                              return (
+                                <>
+                                  <span className="text-slate-400">Project</span>
+                                  {tooltipContent ? (
+                                    <Tooltip content={tooltipContent} position="top">
+                                      <span className="text-slate-600 cursor-help border-b border-dotted border-slate-300">
+                                        {label}
+                                      </span>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-slate-600">{label}</span>
+                                  )}
+                                </>
+                              );
+                            })()}
                             {dob.floors && (() => {
                               const rangeMatch = dob.floors.match(/(\d+)\s+through\s+(\d+)/i);
                               if (rangeMatch?.[1] && rangeMatch?.[2]) {
