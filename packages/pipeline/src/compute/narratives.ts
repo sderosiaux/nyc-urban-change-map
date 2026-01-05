@@ -92,32 +92,31 @@ function generateHeadline(counts: EventCounts, certainty: Certainty): string {
   // Prioritize by significance
   if (counts.newBuildings > 0) {
     if (counts.newBuildings === 1) {
-      headline = 'Nouvel immeuble en préparation';
+      headline = 'New building in progress';
     } else {
-      headline = `${counts.newBuildings} nouveaux immeubles en préparation`;
+      headline = `${counts.newBuildings} new buildings in progress`;
     }
   } else if (counts.demolitions > 0) {
     if (counts.demolitions === 1) {
-      headline = 'Démolition en cours';
+      headline = 'Demolition in progress';
     } else {
-      headline = 'Démolition et reconstruction';
+      headline = 'Demolition and reconstruction';
     }
   } else if (counts.majorWorks > 0) {
-    headline = 'Rénovation majeure en cours';
+    headline = 'Major renovation in progress';
   } else if (counts.capitalProjects > 0) {
-    headline = 'Projet public en développement';
+    headline = 'Public project in development';
   } else if (counts.minorWorks > 0) {
-    headline = 'Travaux de rénovation';
+    headline = 'Renovation work';
   } else {
-    headline = 'Activité de transformation';
+    headline = 'Transformation activity';
   }
 
   // Adjust for certainty level
   if (certainty === 'discussion') {
     headline = headline
-      .replace('en préparation', 'à l\'étude')
-      .replace('en cours', 'envisagée')
-      .replace('en développement', 'à l\'étude');
+      .replace('in progress', 'under review')
+      .replace('in development', 'under review');
   }
 
   return headline;
@@ -130,23 +129,23 @@ function generateOneLiner(counts: EventCounts): string {
   const parts: string[] = [];
 
   if (counts.newBuildings > 0) {
-    parts.push(formatCount(counts.newBuildings, 'immeuble'));
+    parts.push(formatCount(counts.newBuildings, 'building'));
   }
   if (counts.demolitions > 0) {
-    parts.push(formatCount(counts.demolitions, 'démolition'));
+    parts.push(formatCount(counts.demolitions, 'demolition'));
   }
   if (counts.majorWorks > 0) {
-    parts.push(formatCount(counts.majorWorks, 'rénovation majeure'));
+    parts.push(formatCount(counts.majorWorks, 'major renovation'));
   }
   if (counts.capitalProjects > 0) {
-    parts.push(formatCount(counts.capitalProjects, 'projet public'));
+    parts.push(formatCount(counts.capitalProjects, 'public project'));
   }
 
   if (parts.length === 0) {
     if (counts.minorWorks > 0) {
-      return formatCount(counts.minorWorks, 'rénovation mineure');
+      return formatCount(counts.minorWorks, 'minor renovation');
     }
-    return 'Activité de transformation';
+    return 'Transformation activity';
   }
 
   return parts.join(' + ');
@@ -166,23 +165,23 @@ function generateDisruptionSummary(phases: ImpactPhases): string | null {
 
   // If already completed
   if (phases.disruptionEnd < now) {
-    return `Travaux terminés en ${endYear}`;
+    return `Completed in ${endYear}`;
   }
 
   // If in progress
   if (phases.disruptionStart <= now && phases.disruptionEnd > now) {
     if (startYear === endYear) {
-      return `Travaux en cours jusqu'à fin ${endYear}`;
+      return `In progress until late ${endYear}`;
     }
-    return `Travaux en cours jusqu'en ${endYear}`;
+    return `In progress until ${endYear}`;
   }
 
   // If in the future
   if (startYear === endYear) {
-    return `Perturbations prévues en ${startYear}`;
+    return `Expected disruption in ${startYear}`;
   }
 
-  return `Perturbations prévues de ${startYear} à ${endYear}`;
+  return `Expected disruption ${startYear}–${endYear}`;
 }
 
 /**

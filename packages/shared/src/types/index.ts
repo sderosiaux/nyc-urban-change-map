@@ -33,15 +33,15 @@ export interface Bounds {
 export type Certainty = 'discussion' | 'probable' | 'certain';
 
 export const CERTAINTY_LABELS: Record<Certainty, string> = {
-  discussion: 'En discussion',
-  probable: 'Très probable',
-  certain: 'En cours',
+  discussion: 'Under Review',
+  probable: 'Likely',
+  certain: 'In Progress',
 };
 
 export const CERTAINTY_DESCRIPTIONS: Record<Certainty, string> = {
-  discussion: 'Ce projet est à l\'étude, rien n\'est encore décidé',
-  probable: 'Ce projet est approuvé et devrait se réaliser',
-  certain: 'Les travaux sont en cours ou terminés',
+  discussion: 'This project is under review, nothing is decided yet',
+  probable: 'This project is approved and should proceed',
+  certain: 'Construction is in progress or completed',
 };
 
 // =============================================================================
@@ -58,10 +58,10 @@ export type TransformationNature =
 
 export const NATURE_LABELS: Record<TransformationNature, string> = {
   densification: 'Densification',
-  renovation: 'Rénovation',
+  renovation: 'Renovation',
   infrastructure: 'Infrastructure',
-  demolition: 'Démolition',
-  mixed: 'Mixte',
+  demolition: 'Demolition',
+  mixed: 'Mixed',
 };
 
 // =============================================================================
@@ -72,19 +72,19 @@ export const NATURE_LABELS: Record<TransformationNature, string> = {
 export type ProjectStatus = 'planning' | 'approved' | 'active' | 'stalled' | 'completed';
 
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
-  planning: 'En planification',
-  approved: 'Approuvé',
-  active: 'En cours',
-  stalled: 'Arrêté',
-  completed: 'Terminé',
+  planning: 'Planning',
+  approved: 'Approved',
+  active: 'Active',
+  stalled: 'Stalled',
+  completed: 'Completed',
 };
 
 export const PROJECT_STATUS_DESCRIPTIONS: Record<ProjectStatus, string> = {
-  planning: 'Le projet est en phase de planification',
-  approved: 'Le projet a été approuvé mais les travaux n\'ont pas commencé',
-  active: 'Les travaux sont en cours',
-  stalled: 'Le permis a expiré sans que les travaux soient terminés',
-  completed: 'Les travaux sont terminés',
+  planning: 'Project is in planning phase',
+  approved: 'Project is approved but construction has not started',
+  active: 'Construction is in progress',
+  stalled: 'Permit expired before completion',
+  completed: 'Construction is complete',
 };
 
 // =============================================================================
