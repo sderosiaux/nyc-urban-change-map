@@ -215,6 +215,325 @@ const ZAP_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   'Withdrawn': { bg: 'bg-slate-100', text: 'text-slate-500' },
 };
 
+// Building occupancy/use codes (NYC DOB classifications)
+const OCCUPANCY_LABELS: Record<string, string> = {
+  // Vacant (V)
+  'V1': 'Vacant Land',
+  'V2': 'Vacant Land',
+  'V1-VACANT LAND': 'Vacant Land',
+  // One & Two Family (A)
+  'A1': '1 Family Home',
+  'A2': '2 Family Home',
+  'A3': '1-2 Family + Store',
+  'A4': '1-2 Family + Accessory',
+  'A5': '1 Family Attached',
+  'A6': '1 Family Summer',
+  'A7': '1-2 Family Mansion',
+  'A8': 'Bungalow Colony',
+  'A9': '1-2 Family Misc',
+  // Two-Three Family (B)
+  'B1': '2 Family Brick',
+  'B2': '2 Family Frame',
+  'B3': '2 Family Converted',
+  'B9': '2-3 Family Misc',
+  // Walk-up Apartments (C)
+  'C0': '3+ Family Walk-up',
+  'C1': '3 Family Walk-up',
+  'C2': '4-6 Family Walk-up',
+  'C3': '7-10 Family Walk-up',
+  'C4': '11-20 Family Walk-up',
+  'C5': '21+ Family Walk-up',
+  'C6': 'Coop Walk-up',
+  'C7': 'Walk-up + Store',
+  'C8': 'Multi-use Walk-up',
+  'C9': 'Walk-up Misc',
+  // Elevator Apartments (D)
+  'D0': 'Elevator Apartment',
+  'D1': 'Elevator Semi-fireproof',
+  'D2': 'Elevator w/ Stores',
+  'D3': 'Elevator Co-op',
+  'D4': 'Elevator Condo',
+  'D5': 'Elevator Converted',
+  'D6': 'Elevator Loft',
+  'D7': 'Elevator HDFC',
+  'D8': 'Mitchell-Lama',
+  'D9': 'Elevator Misc',
+  // Warehouses (E)
+  'E1': 'Warehouse Fireproof',
+  'E2': 'Warehouse Semi-fireproof',
+  'E3': 'Warehouse Frame',
+  'E4': 'Warehouse w/ Office',
+  'E7': 'Self-Storage',
+  'E9': 'Warehouse Misc',
+  // Factory/Industrial (F)
+  'F1': 'Factory Fireproof',
+  'F2': 'Factory Semi-fireproof',
+  'F4': 'Factory Frame',
+  'F5': 'Factory + Office',
+  'F8': 'Factory Loft',
+  'F9': 'Factory Misc',
+  // Garages (G)
+  'G0': 'Garage Residential',
+  'G1': 'Garage w/ Gas',
+  'G2': 'Garage Auto Body',
+  'G3': 'Gas Station',
+  'G4': 'Gas + Service',
+  'G5': 'Car Wash',
+  'G6': 'Licensed Parking',
+  'G7': 'Unlicensed Parking',
+  'G8': 'Garage Government',
+  'G9': 'Garage Misc',
+  // Hotels (H)
+  'H1': 'Luxury Hotel',
+  'H2': 'Full Service Hotel',
+  'H3': 'Limited Service Hotel',
+  'H4': 'Motel',
+  'H5': 'Private Club',
+  'H6': 'Apartment Hotel',
+  'H7': 'SRO Hotel',
+  'H8': 'Dormitory',
+  'H9': 'Hotel Misc',
+  // Hospitals/Health (I)
+  'I1': 'Hospital',
+  'I2': 'Nursing/Infirmary',
+  'I3': 'Mental Health',
+  'I4': 'Health Center',
+  'I5': 'Dispensary',
+  'I6': 'Nursing Home',
+  'I7': 'Assisted Living',
+  'I9': 'Health Misc',
+  // Theatres/Assembly (J)
+  'J1': 'Theatre',
+  'J2': 'Theatre w/ Stores',
+  'J3': 'Motion Picture',
+  'J4': 'Legitimate Theatre',
+  'J5': 'Concert Hall',
+  'J6': 'TV/Radio Studio',
+  'J7': 'Athletic Club',
+  'J8': 'Nightclub',
+  'J9': 'Theatre Misc',
+  // Stores (K)
+  'K1': 'One Story Store',
+  'K2': 'Two Story Store',
+  'K3': 'Three Story Store',
+  'K4': 'Multi-story Store',
+  'K5': 'Department Store',
+  'K6': 'Chain Store',
+  'K7': 'Mall/Food Court',
+  'K8': 'Big Box Store',
+  'K9': 'Store Misc',
+  // Lofts (L)
+  'L1': 'Loft Fireproof',
+  'L2': 'Loft Semi-fireproof',
+  'L3': 'Loft Frame',
+  'L8': 'Loft w/ Retail',
+  'L9': 'Loft Misc',
+  // Religious (M)
+  'M1': 'Church',
+  'M2': 'Mission House',
+  'M3': 'Parsonage',
+  'M4': 'Convent',
+  'M9': 'Religious Misc',
+  // Asylums/Homes (N)
+  'N1': 'Asylum',
+  'N2': 'Home for Aged',
+  'N3': 'Orphanage',
+  'N4': 'Detention',
+  'N9': 'Asylum Misc',
+  // Office Buildings (O)
+  'O1': 'Office (1 Story)',
+  'O2': 'Office (2-6 Stories)',
+  'O3': 'Office (7-19 Stories)',
+  'O4': 'Office (20+ Stories)',
+  'O5': 'Office + Bank',
+  'O6': 'Office + Stores',
+  'O7': 'Office Co-op',
+  'O8': 'Office Condo',
+  'O9': 'Office Misc',
+  // Amusement (P)
+  'P1': 'Arena/Auditorium',
+  'P2': 'Stadium',
+  'P3': 'Amusement Park',
+  'P4': 'Beach/Pool',
+  'P5': 'Golf Course',
+  'P6': 'Tennis/Sports',
+  'P7': 'Boat Marina',
+  'P8': 'Racetrack',
+  'P9': 'Amusement Misc',
+  // Parks/Government (Q)
+  'Q0': 'Park/Playground',
+  'Q1': 'Park Land',
+  'Q2': 'Playground',
+  'Q3': 'Outdoor Pool',
+  'Q4': 'Beach',
+  'Q5': 'Golf Course',
+  'Q6': 'Stadium Grounds',
+  'Q7': 'Tennis Courts',
+  'Q8': 'Marina',
+  'Q9': 'Parks Misc',
+  // Condos (R)
+  'R0': 'Condo General',
+  'R1': 'Condo Residential 1-3',
+  'R2': 'Condo Residential 4-6',
+  'R3': 'Condo Residential 7-9',
+  'R4': 'Condo Residential 10+',
+  'R5': 'Condo Misc Residence',
+  'R6': 'Condo w/ Stores',
+  'R7': 'Condo (Commercial)',
+  'R8': 'Condo (Co-op)',
+  'R9': 'Condo Misc',
+  // Residence - Mixed (S)
+  'S0': 'Mixed Use w/ Residence',
+  'S1': 'Mixed 1-4 Family',
+  'S2': 'Mixed 5-6 Family',
+  'S3': 'Mixed 7-19 Family',
+  'S4': 'Mixed 20+ Family',
+  'S5': 'Mixed Professional',
+  'S9': 'Mixed Misc',
+  // Transportation (T)
+  'T1': 'Airport',
+  'T2': 'Pier/Dock',
+  'T9': 'Transport Misc',
+  // Utility (U)
+  'U0': 'Utility',
+  'U1': 'Bridge/Tunnel',
+  'U2': 'Gas/Electric',
+  'U3': 'Ceiling Railroad',
+  'U4': 'Comm Franchise',
+  'U5': 'Telecom',
+  'U6': 'Railroad Station',
+  'U7': 'Transportation',
+  'U8': 'Canal',
+  'U9': 'Utility Misc',
+  // Vacant (V)
+  'V0': 'Zoned Residential',
+  'V3': 'Zoned Commercial',
+  'V5': 'Zoned Cemetery',
+  'V7': 'Zoned Agriculture',
+  'V8': 'Zoned Parking',
+  'V9': 'Vacant Misc',
+  // Educational (W)
+  'W1': 'School (Public Elementary)',
+  'W2': 'School (Public Jr High)',
+  'W3': 'School (Public Secondary)',
+  'W4': 'School (Private)',
+  'W5': 'College/University',
+  'W6': 'Trade School',
+  'W7': 'Pre-K/Nursery',
+  'W8': 'Parochial School',
+  'W9': 'Education Misc',
+  // Government (Y)
+  'Y1': 'Fire Station',
+  'Y2': 'Police Station',
+  'Y3': 'Prison',
+  'Y4': 'Military',
+  'Y5': 'Municipal',
+  'Y6': 'Government Office',
+  'Y7': 'Post Office',
+  'Y8': 'Government Misc',
+  'Y9': 'Government Land',
+  // Misc (Z)
+  'Z0': 'Tennis Courts',
+  'Z1': 'Cemetery/Crematory',
+  'Z2': 'Cemetery',
+  'Z3': 'Crematory',
+  'Z4': 'Forest/Wildlife',
+  'Z5': 'Vacant Land (Forest)',
+  'Z7': 'Ballfield',
+  'Z8': 'Vacant (Misc)',
+  'Z9': 'Misc',
+};
+
+// Special zoning district labels
+const ZONE_LABELS: Record<string, { label: string; description: string }> = {
+  // Mandatory Inclusionary Housing
+  'MIH': { label: 'MIH', description: 'Mandatory Inclusionary Housing - requires affordable units in new buildings' },
+  'MIH AREA': { label: 'MIH', description: 'Mandatory Inclusionary Housing - requires affordable units in new buildings' },
+
+  // Anti-Harassment Districts
+  'GW': { label: 'Anti-Harassment', description: 'Greenpoint-Williamsburg Anti-Harassment Area - extra protections against tenant harassment in rezoned areas' },
+  'GWAH': { label: 'Anti-Harassment', description: 'Greenpoint-Williamsburg Anti-Harassment Area - extra protections against tenant harassment' },
+  'CH': { label: 'Anti-Harassment', description: 'Coney Island Anti-Harassment Area - protections against tenant harassment' },
+  'CI': { label: 'Anti-Harassment', description: 'Coney Island Special District - mixed-use amusement/residential area' },
+  'HR': { label: 'Anti-Harassment', description: 'Hudson River Park Anti-Harassment Area' },
+  'WCH': { label: 'Anti-Harassment', description: 'West Chelsea Anti-Harassment Area' },
+
+  // Industrial/Business Zones
+  'IBZ': { label: 'IBZ', description: 'Industrial Business Zone - protected industrial area, manufacturing encouraged' },
+  'IN': { label: 'Industrial', description: 'Industrial Special District - manufacturing and industrial uses' },
+  'EC': { label: 'Econ Dev', description: 'Economic Development Zone - tax incentives for businesses' },
+
+  // Food/Retail
+  'FRESH': { label: 'FRESH', description: 'Food Retail Expansion - incentives for fresh food grocery stores in underserved areas' },
+
+  // Housing Programs
+  'HPD': { label: 'HPD', description: 'Housing Preservation & Development designated area' },
+  'SRO': { label: 'SRO', description: 'Single Room Occupancy - restrictions on converting SRO housing' },
+  'IHDA': { label: 'IHDA', description: 'Inclusionary Housing Designated Area - affordable housing bonuses available' },
+
+  // Waterfront
+  'WF': { label: 'Waterfront', description: 'Waterfront Access Plan area - public access requirements along water' },
+  'WD': { label: 'Waterfront', description: 'Waterfront District - special rules for waterfront development' },
+
+  // Transit-Oriented
+  'TA': { label: 'Transit', description: 'Transit-Adjacent - higher density near subway stations' },
+  'TOD': { label: 'Transit', description: 'Transit-Oriented Development - density bonuses near transit' },
+
+  // Historic/Special Character
+  'HP': { label: 'Historic', description: 'Historic Preservation overlay - protects historic character' },
+  'LPC': { label: 'Landmark', description: 'Landmarks Preservation Commission designated area' },
+  'HY': { label: 'Historic', description: 'Historic District - special preservation rules' },
+  'SD': { label: 'Special Dist', description: 'Special District - unique zoning rules for specific area' },
+
+  // Named Special Districts (Manhattan)
+  'CL': { label: 'Clinton', description: 'Special Clinton District - preserving Hell\'s Kitchen neighborhood character' },
+  'GC': { label: 'Grand Cent', description: 'Grand Central Special District - enhanced transit area' },
+  'HK': { label: 'Hudson Yards', description: 'Special Hudson Yards District - major development zone' },
+  'HU': { label: 'Harlem', description: 'Special Harlem District - neighborhood preservation and development' },
+  'LI': { label: 'Little Italy', description: 'Special Little Italy District - preserve neighborhood character' },
+  'LC': { label: 'Lincoln Sq', description: 'Special Lincoln Square District' },
+  'LS': { label: 'Lower Manhattan', description: 'Special Lower Manhattan District' },
+  'MX': { label: 'Mixed Use', description: 'Special Mixed Use District - combining residential and commercial' },
+  'MP': { label: 'Midtown', description: 'Special Midtown District - high-density commercial' },
+  'PE': { label: 'Penn Sta', description: 'Special Penn Station District - transit-oriented development' },
+  'TA125': { label: '125th St', description: 'Special 125th Street District - Harlem commercial corridor' },
+  'TH': { label: 'Theatre', description: 'Special Theatre District - preserving Broadway theatres' },
+  'TMU': { label: 'Tribeca', description: 'Special Tribeca Mixed Use District' },
+  'UN': { label: 'UN', description: 'Special United Nations Development District' },
+
+  // Named Special Districts (Brooklyn)
+  'BR': { label: 'Bay Ridge', description: 'Special Bay Ridge District' },
+  'CD': { label: 'Crown Heights', description: 'Special Crown Heights District' },
+  'DB': { label: 'Downtown BK', description: 'Special Downtown Brooklyn District - high-density mixed use' },
+  'DT': { label: 'DUMBO', description: 'Special DUMBO District' },
+  'OP': { label: 'Ocean Pkwy', description: 'Special Ocean Parkway District' },
+  'SB': { label: 'Sheepshead', description: 'Special Sheepshead Bay District' },
+
+  // Named Special Districts (Queens)
+  'CD-Q': { label: 'Court Sq', description: 'Special Court Square District - Long Island City' },
+  'DL': { label: 'Dutch Kills', description: 'Special Dutch Kills Subdistrict' },
+  'FA': { label: 'Flushing', description: 'Special Flushing District - downtown Flushing' },
+  'FH': { label: 'Forest Hills', description: 'Special Forest Hills District' },
+  'LIC': { label: 'Long Island City', description: 'Special Long Island City District' },
+  'WP': { label: 'Willets Pt', description: 'Special Willets Point District' },
+
+  // Named Special Districts (Bronx)
+  'FP': { label: 'Fordham', description: 'Special Fordham Road District' },
+  'HB': { label: 'Hunts Point', description: 'Special Hunts Point District' },
+  'JC': { label: 'Jerome', description: 'Special Jerome Corridor District' },
+
+  // Named Special Districts (Staten Island)
+  'HG': { label: 'Hillsides', description: 'Special Hillsides Preservation District' },
+  'NA': { label: 'Natural Area', description: 'Special Natural Area District - environmental protection' },
+  'SC': { label: 'St. George', description: 'Special St. George District' },
+  'SG': { label: 'South Richmond', description: 'Special South Richmond Development District' },
+
+  // Environmental
+  'EC-1': { label: 'Coastal', description: 'Coastal Flood Zone - special resilience requirements' },
+  'FL': { label: 'Flood Zone', description: 'Special Flood Hazard Area - elevation requirements' },
+  'WR': { label: 'Wetland', description: 'Wetland buffer area - environmental restrictions' },
+};
+
 // Activity Timeline component with collapsible closed complaints
 interface SourceSummary {
   sourceType: string;
@@ -894,31 +1213,76 @@ export default function DetailPanel() {
                   const bin = prop.bin;
                   const violationsUrl = bin ? `https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}` : null;
 
+                  // ─────────────────────────────────────────────────────────────
+                  // EXCLUSIVE BADGES (only one of each type)
+                  // ─────────────────────────────────────────────────────────────
+
+                  // Occupancy: one building use (blue)
+                  const occupancy = prop.occupancy;
+                  const occupancyCode = occupancy?.split('-')[0]?.trim();
+                  const occupancyLabel = occupancyCode ? (OCCUPANCY_LABELS[occupancy!] || OCCUPANCY_LABELS[occupancyCode] || occupancy) : null;
+
+                  // Zone: one special district (purple)
+                  const zone = prop.specialArea;
+                  const zoneKey = zone?.replace(' - ', ' ').replace('MIH AREA', 'MIH').split(' ')[0];
+                  const zoneInfo = zoneKey ? (ZONE_LABELS[zoneKey] || ZONE_LABELS[zone!]) : null;
+
+                  // ─────────────────────────────────────────────────────────────
+                  // STACKABLE BADGES (can have multiple)
+                  // ─────────────────────────────────────────────────────────────
+
+                  // Property status flags (gray/amber) - can stack
                   const statusFlags: { label: string; color: string }[] = [];
                   if (prop.landmarkStatus) statusFlags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
                   if (prop.cityOwned) statusFlags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
                   if (prop.condo) statusFlags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
-                  if (prop.vacant) statusFlags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.vacant && !occupancyLabel?.includes('Vacant')) statusFlags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
 
+                  // Violations (red) - can stack, shown as single clickable badge
                   const violationFlags: string[] = [];
                   if (prop.hasClass1Violation) violationFlags.push('Class 1 Violation');
                   if (prop.hasStopWork) violationFlags.push('Stop Work');
                   if (prop.hasPadlock) violationFlags.push('Padlock');
                   if (prop.hasVacateOrder) violationFlags.push('Vacate Order');
 
+                  // Hold flags (amber) - can stack
                   const holdFlags: { label: string; color: string }[] = [];
                   if (prop.filingOnHold) holdFlags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
                   if (prop.approvalOnHold) holdFlags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
 
-                  if (statusFlags.length === 0 && violationFlags.length === 0 && holdFlags.length === 0) return null;
+                  // ─────────────────────────────────────────────────────────────
+
+                  const hasBadges = occupancyLabel || zone || statusFlags.length > 0 || violationFlags.length > 0 || holdFlags.length > 0;
+                  if (!hasBadges) return null;
 
                   return (
                     <>
+                      {/* Exclusive: Occupancy (blue) */}
+                      {occupancyLabel && (
+                        <Tooltip content={`Building use: ${occupancy}`} position="top">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 cursor-help">
+                            {occupancyLabel}
+                          </span>
+                        </Tooltip>
+                      )}
+
+                      {/* Exclusive: Zone (purple) */}
+                      {zone && (
+                        <Tooltip content={zoneInfo?.description || `Special zoning: ${zone}`} position="top">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 cursor-help">
+                            {zoneInfo?.label || zoneKey || zone}
+                          </span>
+                        </Tooltip>
+                      )}
+
+                      {/* Stackable: Status flags (gray/amber) */}
                       {statusFlags.map((flag, i) => (
                         <span key={`s-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
                           {flag.label}
                         </span>
                       ))}
+
+                      {/* Stackable: Violations (red, combined into one clickable badge) */}
                       {violationFlags.length > 0 && violationsUrl && (
                         <ExternalLinkBadge
                           label={violationFlags.join(', ')}
@@ -931,6 +1295,8 @@ export default function DetailPanel() {
                           {label}
                         </span>
                       ))}
+
+                      {/* Stackable: Hold flags (amber) */}
                       {holdFlags.map((flag, i) => (
                         <span key={`h-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
                           {flag.label}
@@ -1064,25 +1430,30 @@ export default function DetailPanel() {
                 <div className="text-sm text-slate-600 space-y-1">
                   {(bin || bbl) && (
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-500 text-xs w-16">IDs</span>
-                      <div className="flex gap-2">
+                      <div className="w-16 flex-shrink-0">
+                        <Tooltip content="BIN = Building ID Number (per building) / BBL = Borough-Block-Lot (per land parcel)" position="right">
+                          <span className="text-slate-500 text-xs cursor-help border-b border-dotted border-slate-400">BIN/BBL</span>
+                        </Tooltip>
+                      </div>
+                      <div className="flex gap-1.5 text-sm">
                         {bin && (
-                          <Tooltip content="Building ID Number - unique ID for each building structure. Click to copy." position="top">
+                          <Tooltip content="Building ID Number. Click to copy." position="top">
                             <button
                               onClick={() => navigator.clipboard.writeText(bin)}
-                              className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                              className="font-mono text-slate-700 hover:text-slate-900 cursor-pointer"
                             >
-                              BIN {bin}
+                              {bin}
                             </button>
                           </Tooltip>
                         )}
+                        {bin && bbl && <span className="text-slate-400">/</span>}
                         {bbl && (
-                          <Tooltip content="Borough-Block-Lot - unique ID for each tax lot (land parcel). Click to copy." position="top">
+                          <Tooltip content="Borough-Block-Lot. Click to copy." position="top">
                             <button
                               onClick={() => navigator.clipboard.writeText(bbl)}
-                              className="font-mono text-slate-700 hover:bg-slate-200 px-1 rounded cursor-pointer text-sm"
+                              className="font-mono text-slate-700 hover:text-slate-900 cursor-pointer"
                             >
-                              BBL {bbl}
+                              {bbl}
                             </button>
                           </Tooltip>
                         )}
@@ -1121,36 +1492,6 @@ export default function DetailPanel() {
                 </div>
               );
             })()}
-
-            {/* Property Details from DOB NOW API */}
-            {detail.propertyDetails && (
-              <div>
-                <h3 className="text-sm font-medium text-slate-900 mb-2">Property Details</h3>
-                <div className="bg-slate-50 rounded-lg p-3 space-y-3">
-                  {/* Key info grid */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                    {detail.propertyDetails.occupancy && (
-                      <>
-                        <span className="text-slate-500">Use</span>
-                        <span className="text-slate-700">{detail.propertyDetails.occupancy}</span>
-                      </>
-                    )}
-                    {detail.propertyDetails.specialArea && (
-                      <>
-                        <span className="text-slate-500">Zone</span>
-                        <span className="text-slate-700">{detail.propertyDetails.specialArea}</span>
-                      </>
-                    )}
-                    {detail.propertyDetails.buildingsOnLot && detail.propertyDetails.buildingsOnLot > 1 && (
-                      <>
-                        <span className="text-slate-500">Buildings</span>
-                        <span className="text-slate-700">{detail.propertyDetails.buildingsOnLot} on lot</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Activity Feed / Sources Timeline */}
             <ActivityTimeline sources={detail.sources} formatDate={formatDate} bin={detail.propertyDetails?.bin} />
