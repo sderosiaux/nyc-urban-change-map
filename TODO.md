@@ -51,3 +51,25 @@ These two identifiers are the keys to unlocking all NYC data:
 - Almost all NYC data sources key off BIN or BBL
 - Once we have these, we can link to ACRIS, HPD, DOB, DOF, OCA, ANHD
 - Consider batch-enriching all Places with BIN/BBL via Geoclient API
+
+## Caching Strategy
+
+Government websites are often slow or unavailable. Data doesn't change frequently.
+
+### Architecture
+- [ ] **Local cache layer** - Store all fetched data locally (SQLite or Postgres)
+- [ ] **Cache-first approach** - Serve from cache, never block on external APIs
+- [ ] **Background refresh** - Update stale data asynchronously when accessed
+- [ ] **Staleness threshold** - Define per-source (e.g., DOB: 24h, ACRIS: 7 days)
+
+### Implementation
+- [ ] Add `cached_at` timestamp to all external data
+- [ ] Add `source_data` table to store raw API responses by BIN/BBL
+- [ ] Background worker to refresh data older than threshold
+- [ ] Graceful degradation - show cached data even if refresh fails
+
+### Benefits
+- Fast UI response (no waiting for gov APIs)
+- Resilience to API outages
+- Reduced load on external services
+- Historical data tracking (diff changes over time)
