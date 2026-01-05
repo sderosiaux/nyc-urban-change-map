@@ -14,7 +14,7 @@ interface TooltipProps {
 }
 
 export default function Tooltip({ content, children, position = 'top' }: TooltipProps) {
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [positioned, setPositioned] = useState(false);
@@ -68,9 +68,9 @@ export default function Tooltip({ content, children, position = 'top' }: Tooltip
   }
 
   return (
-    <div
+    <span
       ref={triggerRef}
-      className="inline-block"
+      className="inline-flex"
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
@@ -87,6 +87,6 @@ export default function Tooltip({ content, children, position = 'top' }: Tooltip
         </div>,
         document.body
       )}
-    </div>
+    </span>
   );
 }

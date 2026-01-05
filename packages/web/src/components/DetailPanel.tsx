@@ -124,6 +124,7 @@ const JOB_STATUS_LABELS: Record<string, { label: string; emoji?: string; color?:
   'Job in Process': { label: 'In Progress', emoji: '◌', color: 'text-blue-600', animate: true },
   'Permit Issued': { label: 'Permitted', emoji: '✓', color: 'text-green-600' },
   'Sign-Off': { label: 'Completed', emoji: '✓', color: 'text-green-600' },
+  'LOC Issued': { label: 'Work done & inspected', emoji: '✓', color: 'text-green-600' },
   'Disapproved': { label: 'Disapproved', emoji: '✗', color: 'text-red-600' },
 };
 
@@ -131,6 +132,7 @@ const JOB_STATUS_LABELS: Record<string, { label: string; emoji?: string; color?:
 const FILING_STATUS_LABELS: Record<string, { label: string; emoji?: string; color?: string }> = {
   'Permit Entire': { label: 'Permit issued, work can start', emoji: '✓', color: 'text-green-600' },
   'Permit Partial': { label: 'Partial permit only', emoji: '◐', color: 'text-amber-600' },
+  'LOC Issued': { label: 'Work done & inspected', emoji: '✓', color: 'text-green-600' },
   'Filing Withdrawn': { label: 'Cancelled by applicant', emoji: '✗', color: 'text-red-600' },
   'Filing Rejected': { label: 'Rejected by city', emoji: '✗', color: 'text-red-600' },
   'Filing Complete': { label: 'Application submitted', emoji: '✓', color: 'text-blue-600' },
@@ -574,6 +576,9 @@ interface SourceSummary {
   };
 }
 
+// Helper to check if a job is completed
+const COMPLETED_JOB_STATUSES = ['LOC Issued', 'Sign-Off'];
+
 function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummary[]; formatDate: (d: string | undefined | null) => string; bin?: string }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [hideClosedComplaints, setHideClosedComplaints] = useState(true);
@@ -684,8 +689,9 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
             const dobNow = group.items[0]?.dobNowDetails;
             const isClosed = complaint?.status === 'CLOSED';
             const isWithdrawn = dobNow?.filingStatus?.toLowerCase().includes('withdrawn');
+            const isCompleted = dobNow?.jobStatus && COMPLETED_JOB_STATUSES.includes(dobNow.jobStatus);
             const isExpanded = expandedItems.has(group.key);
-            const isCollapsible = (isClosed && complaint) || isWithdrawn;
+            const isCollapsible = (isClosed && complaint) || isWithdrawn || isCompleted;
             const isDimmed = (isClosed || isWithdrawn) && !isExpanded;
 
             return (
@@ -696,10 +702,15 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                 {/* Timeline dot */}
                 <div className="relative z-10 flex-shrink-0">
                   <div className={`w-6 h-6 rounded-full bg-white border-2 ${
+                    isCompleted ? 'border-green-400' :
                     group.items.length > 1 ? 'border-blue-400' :
                     (isClosed || isWithdrawn) ? 'border-slate-200' : 'border-slate-300'
                   } flex items-center justify-center`}>
-                    {group.items.length > 1 ? (
+                    {isCompleted ? (
+                      <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : group.items.length > 1 ? (
                       <span className="text-[10px] font-medium text-blue-600">{group.items.length}</span>
                     ) : (
                       <div className={`w-2 h-2 rounded-full ${(isClosed || isWithdrawn) ? 'bg-slate-300' : 'bg-slate-400'}`} />
@@ -877,16 +888,19 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                         );
                       })()}
 
-                      {/* DOB NOW enriched details */}
+                      {/* DOB NOW enriched details - hidden when completed and collapsed */}
                       {(() => {
                         const firstWithDetails = group.items.find(item => item.dobNowDetails);
                         if (!firstWithDetails?.dobNowDetails) return null;
                         const dob = firstWithDetails.dobNowDetails;
-                        const isWithdrawn = dob.filingStatus?.toLowerCase().includes('withdrawn');
+                        const isWithdrawnLocal = dob.filingStatus?.toLowerCase().includes('withdrawn');
+                        const isCompletedLocal = dob.jobStatus && COMPLETED_JOB_STATUSES.includes(dob.jobStatus);
+                        // Hide details if completed/withdrawn and collapsed
+                        if ((isCompletedLocal || isWithdrawnLocal) && !isExpanded) return null;
                         return (
-                          <div className={`mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs ${isWithdrawn ? 'opacity-50' : ''}`}>
+                          <div className={`mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-4 gap-y-1 text-xs ${isWithdrawnLocal ? 'opacity-50' : ''}`}>
                             {/* Show filing status first if withdrawn, otherwise show job status */}
-                            {isWithdrawn ? (
+                            {isWithdrawnLocal ? (
                               <>
                                 <span className="text-slate-400">Status</span>
                                 <span className="text-red-600 font-medium">✗ Withdrawn</span>
@@ -910,8 +924,11 @@ function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummar
                               );
                             })()}
                             {!isWithdrawn && dob.filingStatus && (() => {
+                              // Hide Filing if it shows the same as Job Status (redundant)
+                              const jobStatusLabel = dob.jobStatus ? (JOB_STATUS_LABELS[dob.jobStatus]?.label || dob.jobStatus) : null;
                               const status = FILING_STATUS_LABELS[dob.filingStatus];
                               const label = status?.label || dob.filingStatus;
+                              if (label === jobStatusLabel) return null;
                               const color = status?.color || 'text-slate-600';
                               return (
                                 <>
@@ -1255,12 +1272,14 @@ export default function DetailPanel() {
                   const hasBadges = occupancyLabel || zone || statusFlags.length > 0 || violationFlags.length > 0 || holdFlags.length > 0;
                   if (!hasBadges) return null;
 
+                  const badgeBase = 'text-[10px] leading-none px-1.5 py-1 rounded inline-flex items-center';
+
                   return (
                     <>
                       {/* Exclusive: Occupancy (blue) */}
                       {occupancyLabel && (
                         <Tooltip content={`Building use: ${occupancy}`} position="top">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 cursor-help">
+                          <span className={`${badgeBase} bg-blue-50 text-blue-700 cursor-help`}>
                             {occupancyLabel}
                           </span>
                         </Tooltip>
@@ -1269,7 +1288,7 @@ export default function DetailPanel() {
                       {/* Exclusive: Zone (purple) */}
                       {zone && (
                         <Tooltip content={zoneInfo?.description || `Special zoning: ${zone}`} position="top">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 cursor-help">
+                          <span className={`${badgeBase} bg-purple-50 text-purple-700 cursor-help`}>
                             {zoneInfo?.label || zoneKey || zone}
                           </span>
                         </Tooltip>
@@ -1277,7 +1296,7 @@ export default function DetailPanel() {
 
                       {/* Stackable: Status flags (gray/amber) */}
                       {statusFlags.map((flag, i) => (
-                        <span key={`s-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
+                        <span key={`s-${i}`} className={`${badgeBase} ${flag.color}`}>
                           {flag.label}
                         </span>
                       ))}
@@ -1291,14 +1310,14 @@ export default function DetailPanel() {
                         />
                       )}
                       {violationFlags.length > 0 && !violationsUrl && violationFlags.map((label, i) => (
-                        <span key={`v-${i}`} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                        <span key={`v-${i}`} className={`${badgeBase} bg-red-100 text-red-700`}>
                           {label}
                         </span>
                       ))}
 
                       {/* Stackable: Hold flags (amber) */}
                       {holdFlags.map((flag, i) => (
-                        <span key={`h-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
+                        <span key={`h-${i}`} className={`${badgeBase} ${flag.color}`}>
                           {flag.label}
                         </span>
                       ))}
@@ -1337,34 +1356,6 @@ export default function DetailPanel() {
 
         {detail && detail.transformation && (
           <div className="space-y-6">
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2">
-              {/* Intensity */}
-              <div className="px-3 py-1 bg-slate-900 text-white rounded-full text-sm font-medium">
-                Intensity: {detail.transformation.intensity}
-              </div>
-              {/* Certainty */}
-              {detail.transformation.certainty && (
-                <div
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    CERTAINTY_STYLES[detail.transformation.certainty].bg
-                  } ${CERTAINTY_STYLES[detail.transformation.certainty].text}`}
-                >
-                  {CERTAINTY_STYLES[detail.transformation.certainty].label}
-                </div>
-              )}
-              {/* Nature */}
-              {detail.transformation.nature && (
-                <div
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    NATURE_STYLES[detail.transformation.nature].bg
-                  } ${NATURE_STYLES[detail.transformation.nature].text}`}
-                >
-                  {NATURE_STYLES[detail.transformation.nature].label}
-                </div>
-              )}
-            </div>
-
             {/* Timeline dates */}
             {(() => {
               const t = detail.transformation;

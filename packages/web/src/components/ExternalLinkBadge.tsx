@@ -17,7 +17,7 @@ export default function ExternalLinkBadge({ label, href, tooltip }: ExternalLink
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors font-mono"
+      className="inline-flex items-center gap-1 px-1.5 py-1 rounded text-[10px] leading-none bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors font-mono"
     >
       {label}
       <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
