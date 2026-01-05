@@ -236,8 +236,9 @@ interface SourceSummary {
   };
 }
 
-function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; formatDate: (d: string | undefined | null) => string }) {
+function ActivityTimeline({ sources, formatDate, bin }: { sources?: SourceSummary[]; formatDate: (d: string | undefined | null) => string; bin?: string }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [hideClosedComplaints, setHideClosedComplaints] = useState(true);
 
   if (!sources || sources.length === 0) return null;
 
@@ -280,8 +281,18 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
 
   // Find complaints URL and count (same for all complaints at this building)
   const complaints = sources.filter(s => s.complaintDetails);
+  const closedComplaints = complaints.filter(c => c.complaintDetails?.status === 'CLOSED');
   const complaintsUrl = complaints[0]?.officialUrl;
   const complaintsCount = complaints.length;
+  const closedComplaintsCount = closedComplaints.length;
+
+  // Filter groups based on hideClosedComplaints toggle
+  const filteredGroups = hideClosedComplaints
+    ? groups.filter(group => {
+        const complaint = group.items[0]?.complaintDetails;
+        return !(complaint?.status === 'CLOSED');
+      })
+    : groups;
 
   const toggleExpand = (key: string) => {
     setExpandedItems(prev => {
@@ -299,25 +310,38 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-slate-900">
-          Activity ({sources.length})
+          Activity ({filteredGroups.length}{hideClosedComplaints && closedComplaintsCount > 0 ? ` / ${groups.length}` : ''})
         </h3>
-        {complaintsUrl && (
-          <a
-            href={complaintsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
-          >
-            View {complaintsCount}x complaints on BISWeb →
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {closedComplaintsCount > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideClosedComplaints}
+                onChange={(e) => setHideClosedComplaints(e.target.checked)}
+                className="w-3 h-3 rounded border-slate-300"
+              />
+              Hide {closedComplaintsCount} closed
+            </label>
+          )}
+          {complaintsUrl && (
+            <a
+              href={complaintsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
+            >
+              View {complaintsCount}x on BISWeb →
+            </a>
+          )}
+        </div>
       </div>
       <div className="relative">
         {/* Vertical timeline line */}
         <div className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-slate-200" />
 
         <div className="space-y-0">
-          {groups.map((group) => {
+          {filteredGroups.map((group) => {
             const complaint = group.items[0]?.complaintDetails;
             const dobNow = group.items[0]?.dobNowDetails;
             const isClosed = complaint?.status === 'CLOSED';
@@ -379,10 +403,11 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                         ×{group.items.length}
                       </span>
                     )}
-                    {/* IDs inline - ZAP IDs link to portal, others copy */}
+                    {/* IDs inline - ZAP/Violations link to portals, others copy */}
                     {group.items.map((item, i) => {
                       if (!item.sourceId) return null;
                       const isZap = item.zapDetails || group.sourceType === 'ULURP Filed' || group.sourceType === 'ZAP';
+                      const isViolation = group.sourceType === 'Violation';
                       if (isZap) {
                         return (
                           <span key={i} onClick={(e) => e.stopPropagation()}>
@@ -390,6 +415,17 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                               label={item.sourceId!}
                               href={`https://zap.planning.nyc.gov/projects/${item.sourceId}`}
                               tooltip="View on ZAP Portal (Zoning Application Portal)"
+                            />
+                          </span>
+                        );
+                      }
+                      if (isViolation && bin) {
+                        return (
+                          <span key={i} onClick={(e) => e.stopPropagation()}>
+                            <ExternalLinkBadge
+                              label={item.sourceId!}
+                              href={`https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}`}
+                              tooltip="View property profile on BISWeb"
                             />
                           </span>
                         );
@@ -463,7 +499,9 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                         const isGenericCeqr = group.officialUrl === 'https://a002-ceqraccess.nyc.gov/ceqr/';
                         // Skip ZAP links (ID is now clickable in header)
                         const isZap = group.officialUrl?.includes('zap.planning.nyc.gov');
-                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr && !isZap;
+                        // Skip Violation links (ID is now clickable with ExternalLinkBadge)
+                        const isViolation = group.sourceType === 'Violation';
+                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr && !isZap && !isViolation;
                         // Skip projectType if it matches DOB NOW jobType (avoid duplication)
                         const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
                         const showProjectType = group.projectType && group.projectType !== dobJobType;
@@ -794,23 +832,53 @@ export default function DetailPanel() {
                 {(() => {
                   const prop = detail.propertyDetails;
                   if (!prop) return null;
-                  const flags: { label: string; color: string }[] = [];
-                  if (prop.landmarkStatus) flags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
-                  if (prop.cityOwned) flags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
-                  if (prop.condo) flags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
-                  if (prop.vacant) flags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
-                  if (prop.hasClass1Violation) flags.push({ label: 'Class 1 Violation', color: 'bg-red-100 text-red-700' });
-                  if (prop.hasStopWork) flags.push({ label: 'Stop Work', color: 'bg-red-100 text-red-700' });
-                  if (prop.hasPadlock) flags.push({ label: 'Padlock', color: 'bg-red-100 text-red-700' });
-                  if (prop.hasVacateOrder) flags.push({ label: 'Vacate Order', color: 'bg-red-100 text-red-700' });
-                  if (prop.filingOnHold) flags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
-                  if (prop.approvalOnHold) flags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
-                  if (flags.length === 0) return null;
-                  return flags.map((flag, i) => (
-                    <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
-                      {flag.label}
-                    </span>
-                  ));
+                  const bin = prop.bin;
+                  const violationsUrl = bin ? `https://a810-bisweb.nyc.gov/bisweb/PropertyProfileOverviewServlet?requestid=0&bin=${bin}` : null;
+
+                  const statusFlags: { label: string; color: string }[] = [];
+                  if (prop.landmarkStatus) statusFlags.push({ label: 'Landmark', color: 'bg-amber-100 text-amber-700' });
+                  if (prop.cityOwned) statusFlags.push({ label: 'City-Owned', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.condo) statusFlags.push({ label: 'Condo', color: 'bg-slate-200 text-slate-700' });
+                  if (prop.vacant) statusFlags.push({ label: 'Vacant', color: 'bg-slate-200 text-slate-700' });
+
+                  const violationFlags: string[] = [];
+                  if (prop.hasClass1Violation) violationFlags.push('Class 1 Violation');
+                  if (prop.hasStopWork) violationFlags.push('Stop Work');
+                  if (prop.hasPadlock) violationFlags.push('Padlock');
+                  if (prop.hasVacateOrder) violationFlags.push('Vacate Order');
+
+                  const holdFlags: { label: string; color: string }[] = [];
+                  if (prop.filingOnHold) holdFlags.push({ label: 'Filing Hold', color: 'bg-amber-100 text-amber-700' });
+                  if (prop.approvalOnHold) holdFlags.push({ label: 'Approval Hold', color: 'bg-amber-100 text-amber-700' });
+
+                  if (statusFlags.length === 0 && violationFlags.length === 0 && holdFlags.length === 0) return null;
+
+                  return (
+                    <>
+                      {statusFlags.map((flag, i) => (
+                        <span key={`s-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
+                          {flag.label}
+                        </span>
+                      ))}
+                      {violationFlags.length > 0 && violationsUrl && (
+                        <ExternalLinkBadge
+                          label={violationFlags.join(', ')}
+                          href={violationsUrl}
+                          tooltip="View violations on BISWeb"
+                        />
+                      )}
+                      {violationFlags.length > 0 && !violationsUrl && violationFlags.map((label, i) => (
+                        <span key={`v-${i}`} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                          {label}
+                        </span>
+                      ))}
+                      {holdFlags.map((flag, i) => (
+                        <span key={`h-${i}`} className={`text-[10px] px-1.5 py-0.5 rounded ${flag.color}`}>
+                          {flag.label}
+                        </span>
+                      ))}
+                    </>
+                  );
                 })()}
               </div>
             </>
@@ -1024,7 +1092,7 @@ export default function DetailPanel() {
             )}
 
             {/* Activity Feed / Sources Timeline */}
-            <ActivityTimeline sources={detail.sources} formatDate={formatDate} />
+            <ActivityTimeline sources={detail.sources} formatDate={formatDate} bin={detail.propertyDetails?.bin} />
           </div>
         )}
       </div>
