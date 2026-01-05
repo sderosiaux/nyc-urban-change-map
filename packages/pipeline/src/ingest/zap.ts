@@ -1,14 +1,32 @@
 /**
  * ZAP (Zoning Application Portal) data ingestion
  * Source: NYC Open Data - ZAP Project Data
+ *
+ * ZAP projects don't have coordinates directly, but we can get them via:
+ * 1. ZAP BBL dataset (project_id -> bbl mapping)
+ * 2. PLUTO (bbl -> latitude/longitude)
  */
 
 import { NYC_DATA_ENDPOINTS } from '@ucm/shared';
 import type { EventType } from '@ucm/shared';
+import { fetchPLUTOByBBL } from './pluto.js';
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+export interface ZAPBblRecord {
+  project_id: string;
+  bbl: string;
+  validated_borough?: string;
+  validated_block?: string;
+  validated_lot?: string;
+  validated?: string;
+  validated_date?: string;
+  unverified_borough?: string;
+  unverified_block?: string;
+  unverified_lot?: string;
+}
 
 export interface ZAPProject {
   project_id: string;
@@ -58,36 +76,33 @@ type TrackedStatus = typeof TRACKED_STATUSES[number];
 
 /**
  * Map ZAP action type and status to our event type
+ * Track ALL statuses - we'll decide what to show later
  */
 export function mapZAPActionToEventType(
   ulurpType: string | undefined,
   publicStatus: string
-): EventType | null {
+): EventType {
   const isULURP = ulurpType === 'ULURP';
 
   // Normalize status
   const status = publicStatus.toLowerCase();
 
   if (isULURP) {
-    if (status.includes('filed') || status.includes('active')) {
-      return 'ulurp_filed';
-    }
     if (status.includes('complete') || status.includes('approved')) {
       return 'ulurp_approved';
     }
     if (status.includes('denied') || status.includes('withdrawn')) {
       return 'ulurp_denied';
     }
-    return null;
+    // All other statuses (filed, active, noticed, etc.) = filed
+    return 'ulurp_filed';
   } else {
     // Non-ULURP actions
-    if (status.includes('filed') || status.includes('active')) {
-      return 'zap_filed';
-    }
     if (status.includes('complete') || status.includes('approved')) {
       return 'zap_approved';
     }
-    return null;
+    // All other statuses = filed
+    return 'zap_filed';
   }
 }
 
@@ -211,6 +226,89 @@ export async function fetchZAPProjects(options: {
 }
 
 /**
+ * Fetch BBLs for a ZAP project from the ZAP BBL dataset
+ */
+export async function fetchZAPBbls(options: {
+  projectId?: string;
+  limit?: number;
+  offset?: number;
+  appToken?: string;
+}): Promise<ZAPBblRecord[]> {
+  const { projectId, limit = 1000, offset = 0, appToken } = options;
+
+  const params = new URLSearchParams({
+    $limit: limit.toString(),
+    $offset: offset.toString(),
+  });
+
+  if (projectId) {
+    params.set('$where', `project_id = '${projectId}'`);
+  }
+
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+  };
+
+  if (appToken) {
+    headers['X-App-Token'] = appToken;
+  }
+
+  const url = `${NYC_DATA_ENDPOINTS.zapBbl}?${params}`;
+
+  try {
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      console.error(`ZAP BBL API error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+
+    return response.json() as Promise<ZAPBblRecord[]>;
+  } catch (error) {
+    console.error('Failed to fetch ZAP BBLs:', error);
+    return [];
+  }
+}
+
+/**
+ * Get coordinates for a ZAP project by fetching its BBLs and looking up PLUTO
+ * Returns the first valid coordinate found (a project can span multiple BBLs)
+ */
+export async function getZAPProjectCoordinates(
+  projectId: string,
+  options: { appToken?: string } = {}
+): Promise<{ latitude: number; longitude: number; bbl: string } | null> {
+  const { appToken } = options;
+
+  // Fetch BBLs for this project
+  const bbls = await fetchZAPBbls({ projectId, appToken });
+
+  if (bbls.length === 0) {
+    return null;
+  }
+
+  // Try each BBL until we find one with coordinates in PLUTO
+  for (const bblRecord of bbls) {
+    if (!bblRecord.bbl) continue;
+
+    const pluto = await fetchPLUTOByBBL(bblRecord.bbl, { appToken });
+
+    if (pluto?.latitude && pluto?.longitude) {
+      return {
+        latitude: pluto.latitude,
+        longitude: pluto.longitude,
+        bbl: bblRecord.bbl,
+      };
+    }
+
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
+  return null;
+}
+
+/**
  * Batch fetch all ZAP projects since a date
  */
 export async function fetchAllZAPProjectsSince(
@@ -254,4 +352,95 @@ export async function fetchAllZAPProjectsSince(
   }
 
   return allEvents;
+}
+
+/**
+ * Enrich ZAP events with coordinates by looking up BBLs and PLUTO
+ * This is slow (makes API calls per project) so use with caution
+ */
+export async function enrichZAPEventsWithCoordinates(
+  events: NormalizedZAPEvent[],
+  options: {
+    appToken?: string;
+    onProgress?: (current: number, total: number) => void;
+    concurrency?: number;
+  } = {}
+): Promise<NormalizedZAPEvent[]> {
+  const { appToken, onProgress, concurrency = 5 } = options;
+  const enriched: NormalizedZAPEvent[] = [];
+
+  // Process in batches to manage concurrency
+  for (let i = 0; i < events.length; i += concurrency) {
+    const batch = events.slice(i, i + concurrency);
+
+    const enrichedBatch = await Promise.all(
+      batch.map(async (event) => {
+        // Skip if already has coordinates
+        if (event.latitude && event.longitude) {
+          return event;
+        }
+
+        const coords = await getZAPProjectCoordinates(event.sourceId, { appToken });
+
+        if (coords) {
+          return {
+            ...event,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          };
+        }
+
+        return event;
+      })
+    );
+
+    enriched.push(...enrichedBatch);
+    onProgress?.(enriched.length, events.length);
+
+    // Small delay between batches
+    if (i + concurrency < events.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  return enriched;
+}
+
+/**
+ * Fetch and enrich all ZAP projects with coordinates
+ * Combined function for convenience
+ */
+export async function fetchAllZAPProjectsWithCoordinates(
+  sinceDate: Date,
+  options: {
+    appToken?: string;
+    onProgress?: (message: string) => void;
+  } = {}
+): Promise<NormalizedZAPEvent[]> {
+  const { appToken, onProgress } = options;
+
+  // Step 1: Fetch all projects
+  onProgress?.('Fetching ZAP projects...');
+  const events = await fetchAllZAPProjectsSince(sinceDate, {
+    appToken,
+    onProgress: (count) => onProgress?.(`Fetched ${count} ZAP projects...`),
+  });
+
+  if (events.length === 0) {
+    return [];
+  }
+
+  // Step 2: Enrich with coordinates
+  onProgress?.(`Enriching ${events.length} projects with coordinates...`);
+  const enriched = await enrichZAPEventsWithCoordinates(events, {
+    appToken,
+    onProgress: (current, total) =>
+      onProgress?.(`Enriched ${current}/${total} projects with coordinates...`),
+  });
+
+  // Count how many got coordinates
+  const withCoords = enriched.filter(e => e.latitude && e.longitude).length;
+  onProgress?.(`Done! ${withCoords}/${events.length} projects have coordinates.`);
+
+  return enriched;
 }

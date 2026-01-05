@@ -32,32 +32,56 @@ const CLUSTER_MAX_ZOOM = 16;
 // Layer paint configurations
 const POINT_LAYER_PAINT: CirclePaint = {
   'circle-radius': [
-    'interpolate',
-    ['linear'],
-    ['get', 'intensity'],
-    0, 4,
-    50, 10,
-    100, 20,
+    'case',
+    // ZAP projects: large fixed size - these are important upcoming projects
+    ['==', ['get', 'hasZap'], true],
+    16,
+    // Other points scale with intensity
+    ['interpolate', ['linear'], ['get', 'intensity'],
+      0, 6,
+      50, 12,
+      100, 22,
+    ],
   ],
   'circle-color': [
-    'interpolate',
-    ['linear'],
-    ['get', 'intensity'],
-    0, '#94a3b8', // slate-400
-    30, '#fbbf24', // amber-400
-    60, '#f97316', // orange-500
-    80, '#dc2626', // red-600
+    'case',
+    // ZAP projects: blue background
+    ['==', ['get', 'hasZap'], true],
+    '#3b82f6', // blue-500
+    // Other points scale with intensity
+    ['interpolate', ['linear'], ['get', 'intensity'],
+      0, '#94a3b8', // slate-400
+      30, '#fbbf24', // amber-400
+      60, '#f97316', // orange-500
+      80, '#dc2626', // red-600
+    ],
   ],
   'circle-opacity': [
     'match',
     ['get', 'certainty'],
-    'discussion', 0.4,
-    'probable', 0.7,
+    'discussion', 0.9,
+    'probable', 0.85,
     'certain', 1.0,
-    0.5,
+    0.7,
   ],
-  'circle-stroke-width': 1,
+  'circle-stroke-width': 2,
   'circle-stroke-color': '#fff',
+};
+
+// ZAP project indicator label (shows "?" for ZAP/upcoming projects)
+const ZAP_LABEL_LAYOUT: SymbolLayout = {
+  'text-field': '?',
+  'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+  'text-size': 14,
+  'text-anchor': 'center',
+  'text-allow-overlap': true,
+  'icon-allow-overlap': true,
+};
+
+const ZAP_LABEL_PAINT: SymbolPaint = {
+  'text-color': '#ffffff',
+  'text-halo-color': 'rgba(0,0,0,0.3)',
+  'text-halo-width': 0.5,
 };
 
 // Cluster circle paint
@@ -328,6 +352,17 @@ export default function MapView() {
             filter={['!', ['has', 'point_count']]}
             paint={POINT_LAYER_PAINT}
           />
+          {/* ZAP indicator for unclustered points */}
+          <Layer
+            id="unclustered-zap-label"
+            type="symbol"
+            filter={['all',
+              ['!', ['has', 'point_count']],
+              ['==', ['get', 'hasZap'], true]
+            ]}
+            layout={ZAP_LABEL_LAYOUT}
+            paint={ZAP_LABEL_PAINT}
+          />
         </Source>
       )}
 
@@ -338,6 +373,14 @@ export default function MapView() {
             id="places-layer"
             type="circle"
             paint={POINT_LAYER_PAINT}
+          />
+          {/* ZAP indicator - shows "?" on ZAP projects */}
+          <Layer
+            id="zap-label"
+            type="symbol"
+            filter={['==', ['get', 'hasZap'], true]}
+            layout={ZAP_LABEL_LAYOUT}
+            paint={ZAP_LABEL_PAINT}
           />
         </Source>
       )}

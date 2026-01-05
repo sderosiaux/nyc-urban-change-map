@@ -212,6 +212,7 @@ export const NYC_DATA_ENDPOINTS = {
   // Planning (Planification Urbaine)
   // ==========================================================================
   zapProjects: `${NYC_OPEN_DATA_BASE}/hgx4-8ukb.json`,     // ZAP - Zoning Applications
+  zapBbl: `${NYC_OPEN_DATA_BASE}/2iga-a6mk.json`,          // ZAP BBL - Project to BBL mapping
   capitalProjects: `${NYC_OPEN_DATA_BASE}/h2ic-zdws.json`, // CPDB - Capital Projects
   ceqrProjects: `${NYC_OPEN_DATA_BASE}/gezn-7mgk.json`,    // CEQR Projects
   ceqrMilestones: `${NYC_OPEN_DATA_BASE}/8fj8-3sgg.json`,  // CEQR Project Milestones

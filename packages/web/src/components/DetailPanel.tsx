@@ -134,6 +134,67 @@ const NATURE_STYLES = {
   mixed: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Mixed' },
 } as const;
 
+// ZAP (Zoning Application Portal) action code labels
+const ZAP_ACTION_LABELS: Record<string, string> = {
+  'ZM': 'Zoning Map Amendment',
+  'ZR': 'Zoning Text Amendment',
+  'ZS': 'Zoning Special Permit',
+  'ZA': 'Zoning Authorization',
+  'ZC': 'Zoning Certification',
+  'CU': 'City ULURP Action',
+  'CG': 'Concession',
+  'RA': 'Restrictive Declaration',
+  'LD': 'Legal Document',
+  'ML': 'Modification of Restrictive Declaration',
+  'BF': 'Business Improvement District',
+  'CM': 'City Map Amendment',
+  'CP': 'Curb Cut',
+  'DL': 'Disposition for Urban Renewal',
+  'EE': 'Enclosed Sidewalk Cafe',
+  'EM': 'Easement',
+  'HA': 'Housing Plan & Project',
+  'HP': 'Housing UDAAP',
+  'HR': 'Housing Quality & Safety',
+  'HU': 'UDAAP Designation',
+  'LL': 'Landfill Concession',
+  'ME': 'Major Encroachment',
+  'MM': 'Zoning Map Amendment (Modification)',
+  'MP': 'Acquisition Site Selection',
+  'MY': 'Mayoral Veto',
+  'NP': 'Non-ULURP',
+  'PA': 'Parking Auth.',
+  'PC': 'Public Facility Site Selection',
+  'PD': 'PDC Approval',
+  'PI': 'Private Improvement',
+  'PL': 'Franchise',
+  'PM': 'Preliminary Mayoral',
+  'PN': 'Plaza Bonus',
+  'PQ': 'Plaza Off-site',
+  'PP': 'Disposition of Real Property',
+  'PS': 'Revocable Consent',
+  'RS': 'Renewal Lease',
+  'SC': 'Enclosed Sidewalk Cafe',
+  'SD': 'Maritime Use Consent',
+  'SJ': 'Supplemental Site',
+  'SS': 'Site Selection',
+  'UE': 'Unenclosed Sidewalk Cafe',
+  'VT': 'Vest Pocket Housing',
+};
+
+// ZAP status badge styles
+const ZAP_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  'Filed': { bg: 'bg-slate-100', text: 'text-slate-600' },
+  'Active': { bg: 'bg-blue-100', text: 'text-blue-700' },
+  'In Public Review': { bg: 'bg-amber-100', text: 'text-amber-700' },
+  'Noticed': { bg: 'bg-purple-100', text: 'text-purple-700' },
+  'Certified': { bg: 'bg-green-100', text: 'text-green-700' },
+  'Complete': { bg: 'bg-green-100', text: 'text-green-700' },
+  'Completed': { bg: 'bg-green-100', text: 'text-green-700' },
+  'Approved': { bg: 'bg-green-100', text: 'text-green-700' },
+  'Denied': { bg: 'bg-red-100', text: 'text-red-700' },
+  'Withdrawn': { bg: 'bg-slate-100', text: 'text-slate-500' },
+};
+
 // Activity Timeline component with collapsible closed complaints
 interface SourceSummary {
   sourceType: string;
@@ -156,6 +217,21 @@ interface SourceSummary {
     categoryCode: string;
     disposition?: string;
     inspectionDate?: string;
+  };
+  zapDetails?: {
+    projectName: string;
+    projectBrief?: string;
+    publicStatus: string;
+    isUlurp: boolean;
+    actions?: string[];
+    ulurpNumbers?: string[];
+    ceqrNumber?: string;
+    currentMilestone?: string;
+    currentMilestoneDate?: string;
+    certifiedDate?: string;
+    applicant?: string;
+    applicantType?: string;
+    communityDistrict?: string;
   };
 }
 
@@ -359,9 +435,11 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                       {/* Metadata row */}
                       {(() => {
                         const isComplaint = !!complaint;
-                        // Skip generic DOB NOW links (they just go to homepage)
-                        const isGenericDobNow = group.officialUrl?.includes('a810-dobnow.nyc.gov/publish/Index.html');
-                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow;
+                        // Skip all DOB NOW links (available in Useful Links)
+                        const isGenericDobNow = group.officialUrl?.includes('a810-dobnow.nyc.gov');
+                        // Skip CEQR generic search links (user can use Useful Links instead)
+                        const isGenericCeqr = group.officialUrl === 'https://a002-ceqraccess.nyc.gov/ceqr/';
+                        const showUrl = group.officialUrl && !isComplaint && !isGenericDobNow && !isGenericCeqr;
                         // Skip projectType if it matches DOB NOW jobType (avoid duplication)
                         const dobJobType = group.items.find(item => item.dobNowDetails)?.dobNowDetails?.jobType;
                         const showProjectType = group.projectType && group.projectType !== dobJobType;
@@ -488,6 +566,102 @@ function ActivityTimeline({ sources, formatDate }: { sources?: SourceSummary[]; 
                                 ) : (
                                   <span className={isClosed ? 'text-slate-500' : 'text-slate-600'}>{c.disposition}</span>
                                 )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* ZAP project enriched details */}
+                      {(() => {
+                        const firstWithZap = group.items.find(item => item.zapDetails);
+                        if (!firstWithZap?.zapDetails) return null;
+                        const zap = firstWithZap.zapDetails;
+                        const statusStyle = ZAP_STATUS_STYLES[zap.publicStatus] || { bg: 'bg-slate-100', text: 'text-slate-600' };
+
+                        return (
+                          <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
+                            {/* Status badge */}
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                                {zap.publicStatus}
+                              </span>
+                              {zap.isUlurp && (
+                                <Tooltip content="Uniform Land Use Review Procedure - NYC's public review process for land use and zoning changes" position="top">
+                                  <span className="text-xs text-slate-500 font-medium cursor-help border-b border-dotted border-slate-400">ULURP</span>
+                                </Tooltip>
+                              )}
+                            </div>
+
+                            {/* Project brief */}
+                            {zap.projectBrief && (
+                              <p className="text-xs text-slate-600 leading-relaxed">{zap.projectBrief}</p>
+                            )}
+
+                            {/* Actions and ULURP numbers */}
+                            {zap.actions && zap.actions.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-slate-400">Zoning Actions:</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {zap.actions.map((action, idx) => {
+                                    const label = ZAP_ACTION_LABELS[action] || action;
+                                    const ulurpNum = zap.ulurpNumbers?.[idx];
+                                    const tooltipContent = ulurpNum
+                                      ? `ULURP (Uniform Land Use Review Procedure): ${ulurpNum}`
+                                      : undefined;
+                                    return (
+                                      <Tooltip
+                                        key={idx}
+                                        content={tooltipContent}
+                                        position="top"
+                                      >
+                                        <a
+                                          href={ulurpNum ? `https://zap.planning.nyc.gov/projects?applied-filters=project_applicant_text&project_applicant_text=${encodeURIComponent(ulurpNum)}` : undefined}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-xs text-slate-600 ${ulurpNum ? 'hover:bg-blue-50 hover:text-blue-600 cursor-pointer' : 'cursor-help'}`}
+                                        >
+                                          {label}
+                                        </a>
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Current milestone */}
+                            {zap.currentMilestone && (
+                              <div className="text-xs">
+                                <span className="text-slate-400">Current step: </span>
+                                <span className="text-slate-600">{zap.currentMilestone}</span>
+                              </div>
+                            )}
+
+                            {/* Applicant */}
+                            {zap.applicant && (
+                              <div className="text-xs">
+                                <span className="text-slate-400">Applicant: </span>
+                                <span className="text-slate-600">{zap.applicant}</span>
+                                {zap.applicantType && <span className="text-slate-400"> ({zap.applicantType})</span>}
+                              </div>
+                            )}
+
+                            {/* CEQR number - link to portal with number in URL for easy copy-paste */}
+                            {zap.ceqrNumber && (
+                              <div className="text-xs flex items-center gap-2">
+                                <Tooltip content="City Environmental Quality Review - environmental impact assessment" position="top">
+                                  <span className="text-slate-400 cursor-help border-b border-dotted border-slate-300">CEQR:</span>
+                                </Tooltip>
+                                <a
+                                  href={`https://a002-ceqraccess.nyc.gov/ceqr/?${zap.ceqrNumber}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open CEQR portal (number in URL for easy copy-paste)"
+                                  className="font-mono text-blue-600 hover:text-blue-800 hover:bg-slate-100 px-1 rounded hover:underline"
+                                >
+                                  {zap.ceqrNumber} →
+                                </a>
                               </div>
                             )}
                           </div>

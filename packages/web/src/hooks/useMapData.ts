@@ -50,14 +50,13 @@ export function useMapPlaces() {
 
   return useQuery({
     queryKey: ['mapPlaces', stableBounds, stableZoom, minIntensity, timeMode, year],
-    queryFn: () =>
-      getMapPlaces({
-        bounds: stableBounds!,
-        zoom: stableZoom,
-        minIntensity,
-        timeMode,
-        year,
-      }),
+    queryFn: () => getMapPlaces({
+      bounds: stableBounds!,
+      zoom: stableZoom,
+      minIntensity,
+      timeMode,
+      year,
+    }),
     enabled: !!stableBounds,
     staleTime: 60_000, // 1 minute - data doesn't change often
     gcTime: 5 * 60_000, // Keep in cache for 5 minutes

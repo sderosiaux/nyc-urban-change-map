@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { db, places, rawEvents, dataSources, closeDatabase, initializeDatabase } from '../db/index.js';
 import { fetchAllDOBPermitsSince, type NormalizedEvent } from '../ingest/dob.js';
 import { fetchAllDOBNowJobsSince, type NormalizedDOBNowEvent } from '../ingest/dob-now.js';
-import { fetchAllZAPProjectsSince, type NormalizedZAPEvent } from '../ingest/zap.js';
+import { fetchAllZAPProjectsWithCoordinates, type NormalizedZAPEvent } from '../ingest/zap.js';
 import { fetchAllCapitalProjectsSince, type NormalizedCapitalEvent } from '../ingest/capital.js';
 import { fetchAllComplaintsSince, type NormalizedComplaint } from '../ingest/dob-complaints.js';
 import { fetchAllViolationsSince, type NormalizedViolation } from '../ingest/dob-violations.js';
@@ -37,7 +37,7 @@ const DATA_SOURCES: DataSourceConfig[] = [
   },
   {
     name: 'zap',
-    fetch: (sinceDate, options) => fetchAllZAPProjectsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }),
+    fetch: (sinceDate, options) => fetchAllZAPProjectsWithCoordinates(sinceDate, { appToken: options.appToken, onProgress: (msg) => console.log(`    ${msg}`) }),
   },
   {
     name: 'capital',
@@ -52,7 +52,7 @@ const DATA_SOURCES: DataSourceConfig[] = [
 // Minimum hours between syncs for the same source (default 12h, data updates ~daily)
 const MIN_SYNC_INTERVAL_HOURS = parseInt(process.env['MIN_SYNC_INTERVAL_HOURS'] || '12', 10);
 
-async function ingestDataSource(config: DataSourceConfig, forceSync = false): Promise<void> {
+async function ingestDataSource(config: DataSourceConfig, forceSync = false, resync = false): Promise<void> {
   const { name, fetch } = config;
 
   console.log(`\n--- Starting ${name.toUpperCase()} ingestion ---`);
@@ -83,13 +83,19 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false): Pr
     }
   }
 
-  // Determine since date (last sync or 1 year ago)
-  const defaultSinceDate = new Date();
-  defaultSinceDate.setFullYear(defaultSinceDate.getFullYear() - 1);
-
-  const sinceDate = source?.lastSync
-    ? new Date(source.lastSync)
-    : defaultSinceDate;
+  // Determine since date
+  // - resync: 5 years ago (fetch everything)
+  // - normal: last sync or 1 year ago
+  let sinceDate: Date;
+  if (resync) {
+    sinceDate = new Date();
+    sinceDate.setFullYear(sinceDate.getFullYear() - 5);
+  } else if (source?.lastSync) {
+    sinceDate = new Date(source.lastSync);
+  } else {
+    sinceDate = new Date();
+    sinceDate.setFullYear(sinceDate.getFullYear() - 1);
+  }
 
   console.log(`Fetching ${name} data since ${sinceDate.toISOString()}...`);
 
@@ -137,19 +143,35 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false): Pr
 
 async function main() {
   const forceSync = process.argv.includes('--force');
+  const resync = process.argv.includes('--resync');
+  const sourceArg = process.argv.find(arg => arg.startsWith('--source='));
+  const filterSource = sourceArg ? sourceArg.split('=')[1] : null;
 
   console.log('Initializing database...');
   initializeDatabase();
 
-  console.log('Starting data ingestion for all sources...');
+  const sourcesToRun = filterSource
+    ? DATA_SOURCES.filter(s => s.name === filterSource)
+    : DATA_SOURCES;
+
+  if (filterSource && sourcesToRun.length === 0) {
+    console.error(`Unknown source: ${filterSource}`);
+    console.log('Available sources:', DATA_SOURCES.map(s => s.name).join(', '));
+    process.exit(1);
+  }
+
+  console.log(`Starting data ingestion for ${filterSource || 'all sources'}...`);
   if (forceSync) {
     console.log('Force sync enabled - ignoring sync interval threshold');
   }
+  if (resync) {
+    console.log('Resync enabled - fetching all data from 5 years ago');
+  }
 
   try {
-    for (const config of DATA_SOURCES) {
+    for (const config of sourcesToRun) {
       try {
-        await ingestDataSource(config, forceSync);
+        await ingestDataSource(config, forceSync, resync);
       } catch (error) {
         console.error(`${config.name} ingestion failed:`, error);
 

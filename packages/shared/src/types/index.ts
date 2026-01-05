@@ -204,6 +204,7 @@ export interface PlaceFeature {
     certainty: Certainty;
     nature: TransformationNature;
     headline: string;
+    hasZap?: boolean;
     disruptionEnd?: string;
   };
 }
@@ -285,6 +286,22 @@ export interface SourceSummary {
     dispositionCode?: string;          // e.g., "I2", "AF"
     inspectionDate?: string;
     dispositionDate?: string;
+  };
+  // ZAP project enrichment
+  zapDetails?: {
+    projectName: string;
+    projectBrief?: string;
+    publicStatus: string;              // "In Public Review", "Filed", "Complete"
+    isUlurp: boolean;
+    actions?: string[];                // ["ZM", "ZR", "ZS", "LD"]
+    ulurpNumbers?: string[];           // ["C240271ZMK", "N240272ZRK"]
+    ceqrNumber?: string;
+    currentMilestone?: string;
+    currentMilestoneDate?: string;
+    certifiedDate?: string;
+    applicant?: string;
+    applicantType?: string;            // "Private", "City"
+    communityDistrict?: string;
   };
 }
 

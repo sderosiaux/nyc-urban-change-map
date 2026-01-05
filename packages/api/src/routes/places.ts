@@ -171,6 +171,28 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
             };
           }
 
+          // Build ZAP details for zap sources
+          let zapDetails: SourceSummary['zapDetails'];
+          if (event.source === 'zap' && rawData) {
+            const actionsStr = rawData['actions'] as string | undefined;
+            const ulurpNumbersStr = rawData['ulurp_numbers'] as string | undefined;
+            zapDetails = {
+              projectName: (rawData['project_name'] as string) ?? 'ZAP Project',
+              projectBrief: rawData['project_brief'] as string | undefined,
+              publicStatus: (rawData['public_status'] as string) ?? 'Unknown',
+              isUlurp: rawData['ulurp_non'] === 'ULURP',
+              actions: actionsStr?.split(';').map(s => s.trim()).filter(Boolean),
+              ulurpNumbers: ulurpNumbersStr?.split(';').map(s => s.trim()).filter(Boolean),
+              ceqrNumber: rawData['ceqr_number'] as string | undefined,
+              currentMilestone: rawData['current_milestone'] as string | undefined,
+              currentMilestoneDate: rawData['current_milestone_date'] as string | undefined,
+              certifiedDate: rawData['certified_referred'] as string | undefined,
+              applicant: rawData['primary_applicant'] as string | undefined,
+              applicantType: rawData['applicant_type'] as string | undefined,
+              communityDistrict: rawData['community_district'] as string | undefined,
+            };
+          }
+
           return {
             sourceType: formatEventType(event.eventType, event.source),
             sourceId,
@@ -182,6 +204,7 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
             officialUrl: getOfficialUrl(event),
             dobNowDetails,
             complaintDetails,
+            zapDetails,
           };
         })
       );
@@ -732,6 +755,11 @@ function getOfficialUrl(event: typeof rawEvents.$inferSelect): string | undefine
         return `https://zap.planning.nyc.gov/projects/${projectId}`;
       }
       break;
+    }
+    case 'ceqr': {
+      // CEQR Access doesn't support deep links, link to search page
+      // User can search by CEQR number (shown in the detail panel)
+      return 'https://a002-ceqraccess.nyc.gov/ceqr/';
     }
   }
   return undefined;

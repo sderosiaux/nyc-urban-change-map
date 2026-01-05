@@ -4,7 +4,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { db, places, transformationStates, heatmapCells } from '@ucm/pipeline';
+import { db, places, transformationStates, heatmapCells, rawEvents } from '@ucm/pipeline';
 import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { cellToBoundary } from 'h3-js';
 import type { PlacesGeoJSON, PlaceFeature, HeatmapResponse, TimeMode, Certainty } from '@ucm/shared';
@@ -15,7 +15,7 @@ const boundsSchema = z.string().regex(/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d
 const placesQuerySchema = z.object({
   bounds: boundsSchema,
   zoom: z.coerce.number().min(0).max(22).optional().default(12),
-  min_intensity: z.coerce.number().min(0).max(100).optional().default(0),
+  min_intensity: z.coerce.number().min(0).max(100).optional().default(1), // Default to 1 to hide orphan places
   certainty: z.string().optional(),
   time_mode: z.enum(['past', 'now', 'future']).optional().default('now'),
   year: z.coerce.number().min(2020).max(2040).optional(),
@@ -77,7 +77,16 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
     // Lower zoom (clusters) = larger area = need more places for representative clustering
     const limit = query.zoom < 14 ? 10000 : 2000;
 
+    // Subquery to check if a place has ZAP events
+    const hasZapSubquery = sql<number>`(
+      SELECT 1 FROM ${rawEvents}
+      WHERE ${rawEvents.placeId} = ${places.id}
+      AND ${rawEvents.source} = 'zap'
+      LIMIT 1
+    )`.as('has_zap');
+
     // Fetch places with transformation states
+    // Priority order: discussion points first (important for visibility), then by intensity
     const results = await db
       .select({
         id: places.id,
@@ -88,6 +97,7 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
         nature: transformationStates.nature,
         headline: transformationStates.headline,
         disruptionEnd: transformationStates.disruptionEnd,
+        hasZap: hasZapSubquery,
       })
       .from(places)
       .innerJoin(transformationStates, eq(places.id, transformationStates.placeId))
@@ -95,9 +105,13 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
         ...conditions,
         gte(transformationStates.intensity, query.min_intensity),
       ))
-      // Order by intensity descending to show the most important places
-      // This ensures spatially distributed results when limited
-      .orderBy(desc(transformationStates.intensity), sql`RANDOM()`)
+      // Order: discussion points first (they're important but low intensity),
+      // then by intensity descending for the rest
+      .orderBy(
+        sql`CASE WHEN ${transformationStates.certainty} = 'discussion' THEN 0 ELSE 1 END`,
+        desc(transformationStates.intensity),
+        sql`RANDOM()`
+      )
       .limit(limit);
 
     // Convert to GeoJSON
@@ -111,6 +125,7 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
         certainty: (place.certainty ?? 'discussion') as Certainty,
         nature: (place.nature ?? 'mixed') as PlaceFeature['properties']['nature'],
         headline: place.headline ?? 'Transformation en cours',
+        hasZap: place.hasZap === 1,
         ...(place.disruptionEnd && { disruptionEnd: place.disruptionEnd }),
       },
     }));

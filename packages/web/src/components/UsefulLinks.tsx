@@ -18,6 +18,11 @@ const LINKS = [
     url: 'https://zap.planning.nyc.gov/projects',
     description: 'Zoning applications',
   },
+  {
+    label: 'CEQR Access',
+    url: 'https://a002-ceqraccess.nyc.gov/ceqr/',
+    description: 'Environmental reviews',
+  },
 ];
 
 export default function UsefulLinks() {
