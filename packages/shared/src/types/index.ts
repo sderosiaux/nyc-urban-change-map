@@ -263,6 +263,18 @@ export interface SourceSummary {
   filedDate?: string;
   dateLabel?: string;       // "Filed", "Projected start", etc.
   officialUrl?: string;
+  // DOB NOW enrichment (fetched from API)
+  dobNowDetails?: {
+    bin?: string;
+    address?: string;
+    borough?: string;
+    owner?: string;
+    designProfessional?: string;
+    jobStatus?: string;
+    filingStatus?: string;
+    jobType?: string;
+    floors?: string;
+  };
 }
 
 export interface HeatmapCell {

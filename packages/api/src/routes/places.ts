@@ -8,6 +8,26 @@ import { db, places, transformationStates, rawEvents } from '@ucm/pipeline';
 import { eq } from 'drizzle-orm';
 import type { PlaceDetail, SourceSummary, TransformationNature, Certainty, ProjectStatus } from '@ucm/shared';
 
+// DOB NOW API response types
+interface DobNowPw1Item {
+  Bin?: string;
+  JobDescription?: string;
+  JobStatusLabel?: string;
+  CurrentFilingStatusValue?: string;
+  JobTypeLabel?: string;
+  WorkonFloors?: string;
+  Owner?: string;
+  DesignProfessional?: string;
+  Address?: string;
+  Borough?: string;
+  FilingNumber?: string;
+}
+
+interface DobNowApiResponse {
+  IsSuccess?: boolean;
+  pw1List?: DobNowPw1Item[];
+}
+
 const paramsSchema = z.object({
   id: z.string().uuid(),
 });
@@ -81,19 +101,31 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
         orderBy: (e, { desc }) => [desc(e.eventDate)],
       });
 
-      response.sources = events.map((event): SourceSummary => {
-        const rawData = event.rawData as Record<string, unknown> | null;
-        return {
-          sourceType: formatEventType(event.eventType),
-          sourceId: getSourceId(event),
-          description: formatEventDescription(event),
-          agency: getAgency(rawData, event.source),
-          projectType: getProjectType(rawData, event.source),
-          filedDate: event.eventDate ?? undefined,
-          dateLabel: getDateLabel(event.source),
-          officialUrl: getOfficialUrl(event),
-        };
-      });
+      // Build sources with async DOB NOW enrichment
+      response.sources = await Promise.all(
+        events.map(async (event): Promise<SourceSummary> => {
+          const rawData = event.rawData as Record<string, unknown> | null;
+          const sourceId = getSourceId(event);
+
+          // Fetch DOB NOW details for dob-now sources
+          let dobNowDetails: SourceSummary['dobNowDetails'];
+          if (event.source === 'dob-now' && sourceId) {
+            dobNowDetails = await fetchDobNowDetails(sourceId);
+          }
+
+          return {
+            sourceType: formatEventType(event.eventType),
+            sourceId,
+            description: formatEventDescription(event),
+            agency: getAgency(rawData, event.source),
+            projectType: getProjectType(rawData, event.source),
+            filedDate: event.eventDate ?? undefined,
+            dateLabel: getDateLabel(event.source),
+            officialUrl: getOfficialUrl(event),
+            dobNowDetails,
+          };
+        })
+      );
     }
 
     return response;
@@ -233,4 +265,65 @@ function getDateLabel(source: string): string {
     ceqr: 'Filed',
   };
   return labels[source] ?? 'Date';
+}
+
+/**
+ * Fetch enriched details from DOB NOW public API
+ * API: https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/GlobalSearchApplication/{JobNumber}
+ *
+ * The job filing number format is "B00703063-I1" where:
+ * - B00703063 is the job number (used for API lookup)
+ * - I1 is the filing number (used to find the right entry in pw1List)
+ */
+async function fetchDobNowDetails(jobFilingNumber: string): Promise<SourceSummary['dobNowDetails'] | undefined> {
+  try {
+    // Parse job number and filing number from format "B00703063-I1"
+    const parts = jobFilingNumber.split('-');
+    const jobNumber = parts[0];
+    const filingNumber = parts[1]; // e.g., "I1"
+
+    if (!jobNumber) return undefined;
+
+    const response = await fetch(
+      `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/GlobalSearchApplication/${encodeURIComponent(jobNumber)}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      }
+    );
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const data = await response.json() as DobNowApiResponse;
+
+    if (!data.IsSuccess || !data.pw1List || data.pw1List.length === 0) {
+      return undefined;
+    }
+
+    // Find the matching filing in the list, or use the first one
+    const filing = filingNumber
+      ? data.pw1List.find(f => f.FilingNumber === filingNumber) ?? data.pw1List[0]
+      : data.pw1List[0];
+
+    if (!filing) return undefined;
+
+    return {
+      bin: filing.Bin || undefined,
+      address: filing.Address || undefined,
+      borough: filing.Borough || undefined,
+      owner: filing.Owner || undefined,
+      designProfessional: filing.DesignProfessional || undefined,
+      jobStatus: filing.JobStatusLabel || undefined,
+      filingStatus: filing.CurrentFilingStatusValue || undefined,
+      jobType: filing.JobTypeLabel || undefined,
+      floors: filing.WorkonFloors || undefined,
+    };
+  } catch {
+    // Silently fail - API enrichment is optional
+    return undefined;
+  }
 }
