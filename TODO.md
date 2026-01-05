@@ -19,6 +19,16 @@ Bulk datasets with historical data, queryable via REST API:
   - URL: `https://data.cityofnewyork.us/resource/rbx6-tga4.json`
   - Query: `?bin=3065247`
 
+### DOB NOW Internal APIs (require session)
+These APIs provide richer data but require authenticated session:
+
+- [ ] **Property Details API** - Full property info by BIN
+  - URL: `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/getPublicPortalPropertyDetailsGet/{type}|{bin}`
+  - Example: `getPublicPortalPropertyDetailsGet/2|3065247`
+  - Requires: `authtoken` header + session cookies
+  - Data: Detailed property information, all filings, violations, complaints
+  - Note: Requires browser session scraping or auth flow implementation
+
 ### To Implement
 Fetch and display data from these additional NYC data sources:
 
