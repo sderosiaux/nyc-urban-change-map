@@ -31,6 +31,8 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /map/places - Get places for map rendering
    */
   fastify.get('/places', async (request, reply) => {
+    // Cache for 60 seconds - map data doesn't change often
+    reply.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const query = placesQuerySchema.parse(request.query);
 
     // Parse bounds
@@ -77,12 +79,11 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
     // Lower zoom (clusters) = larger area = need more places for representative clustering
     const limit = query.zoom < 14 ? 10000 : 2000;
 
-    // Subquery to check if a place has ZAP events
-    const hasZapSubquery = sql<number>`(
+    // Check if place has ZAP events using EXISTS (more efficient than SELECT 1)
+    const hasZapSubquery = sql<number>`EXISTS(
       SELECT 1 FROM ${rawEvents}
       WHERE ${rawEvents.placeId} = ${places.id}
       AND ${rawEvents.source} = 'zap'
-      LIMIT 1
     )`.as('has_zap');
 
     // Fetch places with transformation states
@@ -107,10 +108,10 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       ))
       // Order: discussion points first (they're important but low intensity),
       // then by intensity descending for the rest
+      // Note: avoid RANDOM() as it prevents query caching and is expensive
       .orderBy(
         sql`CASE WHEN ${transformationStates.certainty} = 'discussion' THEN 0 ELSE 1 END`,
-        desc(transformationStates.intensity),
-        sql`RANDOM()`
+        desc(transformationStates.intensity)
       )
       .limit(limit);
 
@@ -147,6 +148,8 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /map/heatmap - Get heatmap cells
    */
   fastify.get('/heatmap', async (request, reply) => {
+    // Cache for 5 minutes - heatmap data changes infrequently
+    reply.header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     const query = heatmapQuerySchema.parse(request.query);
 
     // Parse bounds

@@ -24,9 +24,13 @@ if (!existsSync(DATA_DIR)) {
 // Create SQLite client
 const sqlite = new Database(DB_PATH);
 
-// Enable foreign keys and WAL mode for better performance
+// Performance optimizations for 4GB+ database
 sqlite.pragma('journal_mode = WAL');
 sqlite.pragma('foreign_keys = ON');
+sqlite.pragma('mmap_size = 1073741824');  // 1GB memory-mapped I/O
+sqlite.pragma('cache_size = -262144');    // 256MB page cache (negative = KB)
+sqlite.pragma('temp_store = MEMORY');     // Keep temp tables in memory
+sqlite.pragma('synchronous = NORMAL');    // Safe for WAL mode, faster than FULL
 
 // Create Drizzle instance with schema
 export const db = drizzle(sqlite, { schema });
