@@ -586,10 +586,14 @@ Show environmental factors affecting health and safety: air quality, flood risk,
 | Source | Endpoint | Records | Key Fields |
 |--------|----------|---------|------------|
 | Air Quality | `c3uy-2p5r` | ~10K | PM2.5, Ozone, Location |
-| Flood Zones | `4vym-qrg3` | Polygons | FEMA zones, Risk level |
+| Flood Zones (FEMA, predicted) | `4vym-qrg3` | Polygons | FEMA zones, Risk level |
+| **FloodNet events (measured)** | `aq7i-eu5q` | ~daily | Max depth, duration, sensor_id |
+| **FloodNet sensors metadata** | `kb2e-tjy3` | ~200 sensors | lat/lon, NTA, tidal flag |
 | Noise Levels | 311 + Studies | - | Decibel estimates |
 | Tree Canopy | NYC Parks | Polygons | Coverage % |
 | Heat Vulnerability | `rvn8-2qkj` | Index | Heat risk |
+
+> **FEMA vs FloodNet** : FEMA = risque *prédit* (100yr/500yr floodplain, statique). FloodNet = risque *mesuré* au niveau rue, 1 mesure/min, capteurs NYU+CUNY+NYC DEP. Les deux sont complémentaires — garder FEMA pour la couverture complète, FloodNet pour le signal réel. Voir `INTEGRATION_SPECS.md` §4 pour les détails techniques.
 
 ## Environmental Score Formula
 
@@ -608,9 +612,15 @@ interface EnvironmentalScore {
 
     // Climate Risk (35% weight)
     climate: {
-      floodZone: 'none' | 'moderate' | 'high' | 'extreme';
+      floodZone: 'none' | 'moderate' | 'high' | 'extreme';  // FEMA (predicted)
       heatVulnerability: number;
       coastalRisk: boolean;
+
+      // FloodNet sensors (measured)
+      measuredFloodFrequency: number;    // events/year near this location
+      measuredMaxDepth: number;          // p95 max depth observed (inches)
+      nearestSensorDistanceM: number;    // distance to nearest active sensor
+      tidallyInfluenced: boolean;        // nearby sensor flagged tidal
     };
 
     // Green Space (30% weight)
@@ -637,7 +647,14 @@ Task 1.2: Create flood-zones.ts ingest
   - Convert to H3 cells for lookup
   - Store risk level per cell
 
-Task 1.3: Create parks.ts ingest
+Task 1.3: Create floodnet.ts ingest
+  - Fetch FloodNet sensor metadata (kb2e-tjy3)
+  - Fetch flood events incremental (aq7i-eu5q), watermark on flood_start_time
+  - Map sensors to H3 cells
+  - Aggregate events per sensor / NTA / H3
+  - See INTEGRATION_SPECS.md §4
+
+Task 1.4: Create parks.ts ingest
   - Fetch park boundaries
   - Calculate distance to parks
   - Compute tree canopy coverage
@@ -663,14 +680,17 @@ Task 3.4: Create EnvironmentalPanel
 ```
 packages/pipeline/src/ingest/
   ├── air-quality.ts        # NEW
-  ├── flood-zones.ts        # NEW
+  ├── flood-zones.ts        # NEW (FEMA)
+  ├── floodnet.ts           # NEW (FloodNet sensors + events)
   └── parks.ts              # NEW
 
 packages/pipeline/src/compute/
-  └── environmental-score.ts # NEW
+  ├── environmental-score.ts # NEW
+  └── flood-stats.ts         # NEW (aggregates per sensor/NTA/H3)
 
 packages/web/src/components/
-  ├── FloodZoneLayer.tsx    # NEW
+  ├── FloodZoneLayer.tsx    # NEW (FEMA polygons)
+  ├── FloodNetLayer.tsx     # NEW (sensor points + frequency heatmap)
   ├── AirQualityLayer.tsx   # NEW
   └── EnvironmentalPanel.tsx # NEW
 ```
@@ -956,3 +976,4 @@ Unified:
 - [MTA Open Data](https://www.mta.info/open-data)
 - [NYPD CompStat](https://www.nyc.gov/site/nypd/stats/crime-statistics/crime-statistics-landing.page)
 - [NYC 311](https://portal.311.nyc.gov/)
+- [FloodNet NYC](https://www.floodnet.nyc) — real-time street flood sensors ([dashboard](https://dataviz.floodnet.nyc), [datasets](https://data.cityofnewyork.us/browse?Data-Collection_Data-Collection=FloodNet+NYC), [tutorial](https://github.com/mebauer/floodnet-nyc-tutorial))
