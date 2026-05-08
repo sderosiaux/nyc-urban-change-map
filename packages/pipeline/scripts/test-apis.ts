@@ -19,7 +19,9 @@ async function testDOB() {
       console.log('\nSample raw permit:');
       console.log(JSON.stringify(permits[0], null, 2));
 
-      const normalized = normalizeDOBPermit(permits[0]!);
+      const firstPermit = permits[0];
+      if (!firstPermit) return true;
+      const normalized = normalizeDOBPermit(firstPermit);
       console.log('\nNormalized event:');
       console.log(JSON.stringify(normalized, null, 2));
     }
@@ -43,7 +45,9 @@ async function testZAP() {
       console.log('\nSample raw project:');
       console.log(JSON.stringify(projects[0], null, 2));
 
-      const normalized = normalizeZAPProject(projects[0]!);
+      const firstProject = projects[0];
+      if (!firstProject) return true;
+      const normalized = normalizeZAPProject(firstProject);
       console.log('\nNormalized event:');
       console.log(normalized ? JSON.stringify(normalized, null, 2) : 'null (status not tracked)');
     }
@@ -67,7 +71,9 @@ async function testCapital() {
       console.log('\nSample raw project:');
       console.log(JSON.stringify(projects[0], null, 2));
 
-      const normalized = normalizeCapitalProject(projects[0]!);
+      const firstCapital = projects[0];
+      if (!firstCapital) return true;
+      const normalized = normalizeCapitalProject(firstCapital);
       console.log('\nNormalized event:');
       console.log(normalized ? JSON.stringify(normalized, null, 2) : 'null');
     }
@@ -81,11 +87,7 @@ async function testCapital() {
 async function main() {
   console.log('Testing NYC Data APIs...\n');
 
-  const results = await Promise.all([
-    testDOB(),
-    testZAP(),
-    testCapital(),
-  ]);
+  const results = await Promise.all([testDOB(), testZAP(), testCapital()]);
 
   console.log('\n=== Summary ===');
   console.log(`DOB API: ${results[0] ? '✅ Working' : '❌ Failed'}`);

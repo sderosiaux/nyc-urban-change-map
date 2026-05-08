@@ -4,13 +4,13 @@
 
 ### Datasets à intégrer
 
-| Dataset | Endpoint ID | Description | Priorité |
-|---------|-------------|-------------|----------|
-| **Housing Maintenance Code Violations** | `wvxf-dwi5` | Toutes les violations housing | P0 |
-| **Housing Maintenance Code Complaints** | `ygpa-z7cr` | Complaints + Problems (merged) | P0 |
-| **Housing Litigations** | `59kj-x8nc` | Procès contre landlords | P1 |
-| **Multiple Dwelling Registrations** | `tesw-yqqr` | Infos propriétaire/agent | P1 |
-| **Order to Repair/Vacate** | `tb8q-a3ar` | Ordres urgents | P2 |
+| Dataset                                 | Endpoint ID | Description                    | Priorité |
+| --------------------------------------- | ----------- | ------------------------------ | -------- |
+| **Housing Maintenance Code Violations** | `wvxf-dwi5` | Toutes les violations housing  | P0       |
+| **Housing Maintenance Code Complaints** | `ygpa-z7cr` | Complaints + Problems (merged) | P0       |
+| **Housing Litigations**                 | `59kj-x8nc` | Procès contre landlords        | P1       |
+| **Multiple Dwelling Registrations**     | `tesw-yqqr` | Infos propriétaire/agent       | P1       |
+| **Order to Repair/Vacate**              | `tb8q-a3ar` | Ordres urgents                 | P2       |
 
 ### API Endpoints
 
@@ -29,11 +29,11 @@ https://data.cityofnewyork.us/resource/59kj-x8nc.json
 
 ```typescript
 interface HPDViolation {
-  violationid: string;           // Unique ID
-  buildingid: string;            // HPD Building ID
-  registrationid: string;        // Registration ID
-  boroid: string;                // 1-5
-  borough: string;               // Full name
+  violationid: string; // Unique ID
+  buildingid: string; // HPD Building ID
+  registrationid: string; // Registration ID
+  boroid: string; // 1-5
+  borough: string; // Full name
   housenumber: string;
   lowhousenumber: string;
   highhousenumber: string;
@@ -44,7 +44,7 @@ interface HPDViolation {
   story: string;
   block: string;
   lot: string;
-  class: string;                 // A, B, C, I
+  class: string; // A, B, C, I
   inspectiondate: string;
   approveddate: string;
   originalcertifybydate: string;
@@ -53,8 +53,8 @@ interface HPDViolation {
   newcorrectbydate: string;
   certifieddate: string;
   ordernumber: string;
-  novid: string;                 // Notice of Violation ID
-  novdescription: string;        // Violation description
+  novid: string; // Notice of Violation ID
+  novdescription: string; // Violation description
   novissueddate: string;
   currentstatusid: string;
   currentstatus: string;
@@ -64,8 +64,8 @@ interface HPDViolation {
   communityboard: string;
   councildistrict: string;
   censustract: string;
-  bin: string;                   // BIN!
-  bbl: string;                   // BBL!
+  bin: string; // BIN!
+  bbl: string; // BBL!
   nta: string;
 }
 ```
@@ -114,15 +114,15 @@ interface HPDComplaint {
 ```typescript
 const HPD_EVENT_TYPE_MAP: Record<string, EventType> = {
   // Violations par classe
-  'A': 'hpd_violation_a',     // Non-hazardous
-  'B': 'hpd_violation_b',     // Hazardous
-  'C': 'hpd_violation_c',     // Immediately hazardous
-  'I': 'hpd_violation_info',  // Information order
+  A: 'hpd_violation_a', // Non-hazardous
+  B: 'hpd_violation_b', // Hazardous
+  C: 'hpd_violation_c', // Immediately hazardous
+  I: 'hpd_violation_info', // Information order
   // Complaints par catégorie majeure
   'HEAT/HOT WATER': 'hpd_complaint_heat',
-  'PLUMBING': 'hpd_complaint_plumbing',
-  'ELECTRIC': 'hpd_complaint_electric',
-  'SAFETY': 'hpd_complaint_safety',
+  PLUMBING: 'hpd_complaint_plumbing',
+  ELECTRIC: 'hpd_complaint_electric',
+  SAFETY: 'hpd_complaint_safety',
   // etc.
 };
 ```
@@ -144,30 +144,32 @@ packages/shared/src/constants/hpd.ts  (mappings, categories)
 Les données viennent du **Housing Data Coalition** qui parse les fichiers XML de l'OCA.
 
 **CSV hébergés sur S3:**
+
 ```
 https://oca-2-dev.s3.amazonaws.com/public/
 ```
 
 ### Tables disponibles
 
-| Table | Description | Clé |
-|-------|-------------|-----|
-| `oca_index` | Case records (main) | indexnumberid |
-| `oca_causes` | Raisons du case | indexnumberid |
-| `oca_addresses` | Adresses (ZIP only!) | indexnumberid |
-| `oca_parties` | Parties impliquées | indexnumberid |
-| `oca_events` | Activités du case | indexnumberid |
-| `oca_appearances` | Comparutions | indexnumberid |
-| `oca_motions` | Motions déposées | indexnumberid |
-| `oca_decisions` | Décisions | indexnumberid |
-| `oca_judgments` | Jugements finaux | indexnumberid |
-| `oca_warrants` | Warrants d'éviction | indexnumberid |
+| Table             | Description          | Clé           |
+| ----------------- | -------------------- | ------------- |
+| `oca_index`       | Case records (main)  | indexnumberid |
+| `oca_causes`      | Raisons du case      | indexnumberid |
+| `oca_addresses`   | Adresses (ZIP only!) | indexnumberid |
+| `oca_parties`     | Parties impliquées   | indexnumberid |
+| `oca_events`      | Activités du case    | indexnumberid |
+| `oca_appearances` | Comparutions         | indexnumberid |
+| `oca_motions`     | Motions déposées     | indexnumberid |
+| `oca_decisions`   | Décisions            | indexnumberid |
+| `oca_judgments`   | Jugements finaux     | indexnumberid |
+| `oca_warrants`    | Warrants d'éviction  | indexnumberid |
 
 ### Limitation importante
 
 ⚠️ **Pas d'adresse précise** — seulement le **ZIP code** pour des raisons de privacy.
 
 On ne peut pas lier directement à un building/place, mais on peut:
+
 1. Agréger par ZIP → afficher "X eviction filings in this ZIP"
 2. Enrichir les places existantes avec des stats de leur ZIP
 
@@ -207,7 +209,7 @@ interface NYCEviction {
   executed_date: string;
   marshal_first_name: string;
   marshal_last_name: string;
-  residential_commercial: string;  // "Residential" | "Commercial"
+  residential_commercial: string; // "Residential" | "Commercial"
   borough: string;
   eviction_zip: string;
   ejectment: string;
@@ -243,10 +245,16 @@ packages/pipeline/src/ingest/oca-stats.ts  (optionnel, phase 2)
 // packages/shared/src/types/index.ts
 
 export type EventSource =
-  | 'dob' | 'dob-now' | 'dob-violations' | 'dob-complaints'
-  | 'zap' | 'capital' | 'ceqr'
-  | 'hpd-violations' | 'hpd-complaints'  // NEW
-  | 'evictions';                          // NEW
+  | 'dob'
+  | 'dob-now'
+  | 'dob-violations'
+  | 'dob-complaints'
+  | 'zap'
+  | 'capital'
+  | 'ceqr'
+  | 'hpd-violations'
+  | 'hpd-complaints' // NEW
+  | 'evictions'; // NEW
 
 export type EventType =
   // ... existing types ...
@@ -274,14 +282,14 @@ Réseau de capteurs de crue déployé par NYU + CUNY + NYC DEP + Mayor's Office 
 - Dashboard officiel : https://dataviz.floodnet.nyc
 - Tutorial référence (Python, Socrata) : https://github.com/mebauer/floodnet-nyc-tutorial (voir `00-download-data.ipynb`)
 
-**Pourquoi c'est utile** : les zones FEMA (`4vym-qrg3`) donnent le risque *prédit* (100yr/500yr floodplain). FloodNet donne le risque *mesuré* — signal réel, haute fréquence, au niveau rue. Les deux sont complémentaires, pas redondants.
+**Pourquoi c'est utile** : les zones FEMA (`4vym-qrg3`) donnent le risque _prédit_ (100yr/500yr floodplain). FloodNet donne le risque _mesuré_ — signal réel, haute fréquence, au niveau rue. Les deux sont complémentaires, pas redondants.
 
 ### Datasets à intégrer
 
-| Dataset | Endpoint ID | Description | Priorité |
-|---------|-------------|-------------|----------|
-| **Street Flooding Events** | `aq7i-eu5q` | Événements de crue mesurés (1 ligne / event) | P0 |
-| **Sensor Deployment Metadata** | `kb2e-tjy3` | Métadonnées capteurs : lat/lon, install, NTA, CB | P0 |
+| Dataset                        | Endpoint ID | Description                                      | Priorité |
+| ------------------------------ | ----------- | ------------------------------------------------ | -------- |
+| **Street Flooding Events**     | `aq7i-eu5q` | Événements de crue mesurés (1 ligne / event)     | P0       |
+| **Sensor Deployment Metadata** | `kb2e-tjy3` | Métadonnées capteurs : lat/lon, install, NTA, CB | P0       |
 
 Mis à jour quotidiennement via l'API Socrata standard.
 
@@ -305,40 +313,40 @@ Le pattern est identique au tutorial `mebauer/floodnet-nyc-tutorial/00-download-
 
 ### Fields clés — Flood Events (`aq7i-eu5q`)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sensor_id` | text | JOIN key avec sensor metadata |
-| `sensor_name` | text | Nom humain du capteur |
-| `flood_start_time` | datetime (GMT) | Début de la crue |
-| `flood_end_time` | datetime (GMT) | Fin de la crue |
-| `max_depth_inches` | number | Hauteur maximale mesurée |
-| `onset_time_mins` | number | Temps pour atteindre le max |
-| `drain_time_mins` | number | Temps de drainage depuis le pic |
-| `duration_mins` | number | Durée totale |
-| `duration_above_4_inches_mins` | number | Durée > 4″ (impact véhicule) |
-| `duration_above_12_inches_mins` | number | Durée > 12″ (impact rdc/bâti) |
-| `duration_above_24_inches_mins` | number | Durée > 24″ (dangereux) |
-| `flood_profile_depth_inches` | text (CSV) | Time series hauteur |
-| `flood_profile_time_secs` | text (CSV) | Time series timestamps |
+| Field                           | Type           | Description                     |
+| ------------------------------- | -------------- | ------------------------------- |
+| `sensor_id`                     | text           | JOIN key avec sensor metadata   |
+| `sensor_name`                   | text           | Nom humain du capteur           |
+| `flood_start_time`              | datetime (GMT) | Début de la crue                |
+| `flood_end_time`                | datetime (GMT) | Fin de la crue                  |
+| `max_depth_inches`              | number         | Hauteur maximale mesurée        |
+| `onset_time_mins`               | number         | Temps pour atteindre le max     |
+| `drain_time_mins`               | number         | Temps de drainage depuis le pic |
+| `duration_mins`                 | number         | Durée totale                    |
+| `duration_above_4_inches_mins`  | number         | Durée > 4″ (impact véhicule)    |
+| `duration_above_12_inches_mins` | number         | Durée > 12″ (impact rdc/bâti)   |
+| `duration_above_24_inches_mins` | number         | Durée > 24″ (dangereux)         |
+| `flood_profile_depth_inches`    | text (CSV)     | Time series hauteur             |
+| `flood_profile_time_secs`       | text (CSV)     | Time series timestamps          |
 
 ### Fields clés — Sensor Metadata (`kb2e-tjy3`)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sensor_id` | text | PK |
-| `latitude` / `longitude` | number | Position capteur |
-| `location` | point | GeoJSON point (usage direct) |
-| `street_name` | text | Rue |
-| `borough` | text | Borough |
-| `zipcode` | text | ZIP |
-| `community_board` | number | CB |
-| `council_district` | text | City Council district |
-| `census_tract` | text | Census tract 2020 |
-| `nta` | text | Neighborhood Tabulation Area |
-| `date_installed` | date | Date de déploiement |
-| `date_removed` | date | Nullable — capteur actif si null |
-| `tidally_influenced` | text | "Yes"/"No" — si la crue est liée aux marées |
-| `lowest_point_height_delta_inches` | number | Offset du capteur vs point le plus bas rue |
+| Field                              | Type   | Description                                 |
+| ---------------------------------- | ------ | ------------------------------------------- |
+| `sensor_id`                        | text   | PK                                          |
+| `latitude` / `longitude`           | number | Position capteur                            |
+| `location`                         | point  | GeoJSON point (usage direct)                |
+| `street_name`                      | text   | Rue                                         |
+| `borough`                          | text   | Borough                                     |
+| `zipcode`                          | text   | ZIP                                         |
+| `community_board`                  | number | CB                                          |
+| `council_district`                 | text   | City Council district                       |
+| `census_tract`                     | text   | Census tract 2020                           |
+| `nta`                              | text   | Neighborhood Tabulation Area                |
+| `date_installed`                   | date   | Date de déploiement                         |
+| `date_removed`                     | date   | Nullable — capteur actif si null            |
+| `tidally_influenced`               | text   | "Yes"/"No" — si la crue est liée aux marées |
+| `lowest_point_height_delta_inches` | number | Offset du capteur vs point le plus bas rue  |
 
 ### Stratégie d'intégration
 
@@ -356,15 +364,15 @@ Ajouter à `climate` dans `EnvironmentalScore` :
 
 ```typescript
 climate: {
-  floodZone: 'none' | 'moderate' | 'high' | 'extreme';  // FEMA (prédit)
+  floodZone: 'none' | 'moderate' | 'high' | 'extreme'; // FEMA (prédit)
   heatVulnerability: number;
   coastalRisk: boolean;
 
   // FloodNet (mesuré)
-  measuredFloodFrequency: number;    // events/year dans un rayon de X m
-  measuredMaxDepth: number;          // p95 max depth observé (inches)
-  nearestSensorDistanceM: number;    // distance au capteur le plus proche
-  tidallyInfluenced: boolean;        // au moins un capteur proche marqué tidal
+  measuredFloodFrequency: number; // events/year dans un rayon de X m
+  measuredMaxDepth: number; // p95 max depth observé (inches)
+  nearestSensorDistanceM: number; // distance au capteur le plus proche
+  tidallyInfluenced: boolean; // au moins un capteur proche marqué tidal
 }
 ```
 
@@ -388,13 +396,13 @@ packages/web/src/components/
 
 FloodNet sensor metadata (`kb2e-tjy3`) partage **3 clés directement JOIN-ables** avec notre table `places` (`packages/pipeline/src/db/schema.ts:21`), plus les coordonnées. **Pas de clé building-level** (pas de BBL, pas de BIN) — les capteurs sont dans la rue, pas attachés à un bâtiment. C'est intentionnel, ne pas forcer.
 
-| Notre champ (`places`) | FloodNet (`kb2e-tjy3`) | Format | Index existant | Statut |
-|---|---|---|---|---|
-| `ntaCode` | `nta` | NTA 2020 (`BK0503`, `QN0707`) | `idx_places_nta` | ✅ Exact match |
-| `communityDistrict` | `community_board` | 3-digit `{boro}{cd}` (`305` = BK CD5) | — | ✅ Exact match |
-| `borough` | `borough` | Nom complet (`Brooklyn`) | `idx_places_borough` | ✅ Exact match |
-| `latitude` / `longitude` | `latitude` / `longitude` | WGS84 décimal | `idx_places_coords` | ✅ Spatial proximity |
-| `bin` / `bbl` | — | — | — | ❌ N/A (pas de concept building) |
+| Notre champ (`places`)   | FloodNet (`kb2e-tjy3`)   | Format                                | Index existant       | Statut                           |
+| ------------------------ | ------------------------ | ------------------------------------- | -------------------- | -------------------------------- |
+| `ntaCode`                | `nta`                    | NTA 2020 (`BK0503`, `QN0707`)         | `idx_places_nta`     | ✅ Exact match                   |
+| `communityDistrict`      | `community_board`        | 3-digit `{boro}{cd}` (`305` = BK CD5) | —                    | ✅ Exact match                   |
+| `borough`                | `borough`                | Nom complet (`Brooklyn`)              | `idx_places_borough` | ✅ Exact match                   |
+| `latitude` / `longitude` | `latitude` / `longitude` | WGS84 décimal                         | `idx_places_coords`  | ✅ Spatial proximity             |
+| `bin` / `bbl`            | —                        | —                                     | —                    | ❌ N/A (pas de concept building) |
 
 **Vérification des formats** (fait avant d'écrire cette section) :
 
@@ -512,18 +520,19 @@ NYCDB est un projet Python qui:
 
 ### Transformations disponibles
 
-| Transform | Description |
-|-----------|-------------|
-| `flip_numbers()` | `2017values` → `values2017` (SQL can't start with digits) |
-| `clean_headers()` | Lowercase, remove invalid chars |
-| `with_bbl()` | Ajoute colonne BBL = concat(borough, block, lot) |
-| `skip_fields()` | Remove unused columns |
-| `hpd_registrations_address_cleanup()` | Normalize addresses |
-| `extract_csvs_from_zip()` | Merge multiple CSVs from ZIP |
+| Transform                             | Description                                               |
+| ------------------------------------- | --------------------------------------------------------- |
+| `flip_numbers()`                      | `2017values` → `values2017` (SQL can't start with digits) |
+| `clean_headers()`                     | Lowercase, remove invalid chars                           |
+| `with_bbl()`                          | Ajoute colonne BBL = concat(borough, block, lot)          |
+| `skip_fields()`                       | Remove unused columns                                     |
+| `hpd_registrations_address_cleanup()` | Normalize addresses                                       |
+| `extract_csvs_from_zip()`             | Merge multiple CSVs from ZIP                              |
 
 ### Indexes créés (à copier)
 
 **HPD Violations:**
+
 ```sql
 CREATE INDEX hpd_violations_bbl_idx ON hpd_violations (bbl);
 CREATE INDEX hpd_violations_bin_idx ON hpd_violations (bin);
@@ -532,6 +541,7 @@ CREATE UNIQUE INDEX hpd_violations_violationid_idx ON hpd_violations (violationi
 ```
 
 **ACRIS:**
+
 ```sql
 -- BBL sur les tables legals
 CREATE INDEX real_property_legals_bbl_idx ON real_property_legals (bbl);
@@ -559,6 +569,7 @@ pluto_latest.yml             pad.yml
 ### Schémas exacts (from NYCDB YAML)
 
 **HPD Violations (37 cols, 4M+ rows):**
+
 ```
 ViolationID (int), BuildingID (int), RegistrationID (int),
 BoroID (char1), Borough (text), HouseNumber (text),
@@ -570,6 +581,7 @@ NTA (text), RentImpairing (boolean), ...
 ```
 
 **HPD Complaints (31 cols, 13M+ rows):**
+
 ```
 ReceivedDate (date), ProblemID (int), ComplaintID (int),
 BuildingID (int), Borough (text), HouseNumber (text),
@@ -580,6 +592,7 @@ Latitude (numeric), Longitude (numeric), Bin (char7), BBL (char10), ...
 ```
 
 **Executed Evictions (20 cols, 105K rows):**
+
 ```
 CourtIndexNumber (text), DocketNumber (text),
 EvictionAddress (text), EvictionApartmentNumber (text),
@@ -589,6 +602,7 @@ Latitude (numeric), Longitude (numeric), Bin (char7), Bbl (char10), ...
 ```
 
 **OCA (11 tables, 1.3M+ cases):**
+
 ```
 oca_index:       indexnumberid, court, fileddate, status, disposeddate...
 oca_causes:      indexnumberid, causeofactiontype, amount...
@@ -600,13 +614,13 @@ oca_warrants:    indexnumberid, ordereddate, issueddate, executiondate...
 
 ### Notre approche vs NYCDB
 
-| Aspect | NYCDB | Notre approche |
-|--------|-------|----------------|
-| **Language** | Python | TypeScript |
-| **DB** | PostgreSQL | SQLite (local) / Turso (prod) |
-| **Utilisation** | Standalone DB | Intégré dans notre pipeline |
-| **Ce qu'on prend** | Schémas, indexes, URLs | ✅ |
-| **Ce qu'on skip** | Code Python | ✅ |
+| Aspect             | NYCDB                  | Notre approche                |
+| ------------------ | ---------------------- | ----------------------------- |
+| **Language**       | Python                 | TypeScript                    |
+| **DB**             | PostgreSQL             | SQLite (local) / Turso (prod) |
+| **Utilisation**    | Standalone DB          | Intégré dans notre pipeline   |
+| **Ce qu'on prend** | Schémas, indexes, URLs | ✅                            |
+| **Ce qu'on skip**  | Code Python            | ✅                            |
 
 **Conclusion**: On utilise NYCDB comme **référence** pour les schémas et bonnes pratiques, mais on implémente en TypeScript dans notre stack.
 

@@ -33,6 +33,7 @@ Migrer le backend de SQLite local (`better-sqlite3`) vers **Cloudflare D1** pour
 ```
 
 **Limitations actuelles:**
+
 - Single-server, pas de HA
 - Backup manuel
 - Pas de CDN/edge
@@ -81,25 +82,25 @@ Migrer le backend de SQLite local (`better-sqlite3`) vers **Cloudflare D1** pour
 
 ## Cloudflare Products à Utiliser
 
-| Produit | Usage | Pricing (Workers Paid $5/mo) |
-|---------|-------|------------------------------|
-| **D1** | Base SQLite serverless | 25B reads/mo inclus, 50M writes/mo inclus, 10GB/database |
-| **Workers** | API serverless (remplace Fastify) | 10M requests/mo inclus |
-| **Pages** | Hébergement React static | Illimité |
-| **KV** (optionnel) | Cache clé-valeur pour heatmap pré-calculé | 100K reads/day free |
+| Produit            | Usage                                     | Pricing (Workers Paid $5/mo)                             |
+| ------------------ | ----------------------------------------- | -------------------------------------------------------- |
+| **D1**             | Base SQLite serverless                    | 25B reads/mo inclus, 50M writes/mo inclus, 10GB/database |
+| **Workers**        | API serverless (remplace Fastify)         | 10M requests/mo inclus                                   |
+| **Pages**          | Hébergement React static                  | Illimité                                                 |
+| **KV** (optionnel) | Cache clé-valeur pour heatmap pré-calculé | 100K reads/day free                                      |
 
 ### Pourquoi D1?
 
-| Critère | SQLite Local | Cloudflare D1 |
-|---------|--------------|---------------|
-| **Scalabilité** | Single node | Read replicas globales |
-| **Latence** | Dépend du serveur | Edge (<50ms worldwide) |
-| **Backup** | Manuel | Time Travel (30 jours) |
-| **HA** | Non | Oui (réplication auto) |
-| **Maintenance** | Serveur à gérer | Zero |
-| **ORM** | Drizzle ✅ | Drizzle ✅ (compatible) |
-| **Prix** | VPS ~$10-50/mo | $5/mo (Workers Paid) |
-| **Taille max** | Illimitée | 10GB/database |
+| Critère         | SQLite Local      | Cloudflare D1           |
+| --------------- | ----------------- | ----------------------- |
+| **Scalabilité** | Single node       | Read replicas globales  |
+| **Latence**     | Dépend du serveur | Edge (<50ms worldwide)  |
+| **Backup**      | Manuel            | Time Travel (30 jours)  |
+| **HA**          | Non               | Oui (réplication auto)  |
+| **Maintenance** | Serveur à gérer   | Zero                    |
+| **ORM**         | Drizzle ✅        | Drizzle ✅ (compatible) |
+| **Prix**        | VPS ~$10-50/mo    | $5/mo (Workers Paid)    |
+| **Taille max**  | Illimitée         | 10GB/database           |
 
 ---
 
@@ -107,23 +108,23 @@ Migrer le backend de SQLite local (`better-sqlite3`) vers **Cloudflare D1** pour
 
 ### Données actuelles/projetées
 
-| Table | Rows estimées | Taille estimée |
-|-------|---------------|----------------|
-| `places` | ~500K | ~200MB |
-| `rawEvents` | ~2-5M | ~1-2GB |
-| `transformationStates` | ~500K | ~300MB |
-| `heatmapCells` | ~50K | ~20MB |
-| `dataSources` | 10 | <1KB |
-| **TOTAL** | | **~2-3GB** |
+| Table                  | Rows estimées | Taille estimée |
+| ---------------------- | ------------- | -------------- |
+| `places`               | ~500K         | ~200MB         |
+| `rawEvents`            | ~2-5M         | ~1-2GB         |
+| `transformationStates` | ~500K         | ~300MB         |
+| `heatmapCells`         | ~50K          | ~20MB          |
+| `dataSources`          | 10            | <1KB           |
+| **TOTAL**              |               | **~2-3GB**     |
 
 **Verdict:** ✅ Fits dans D1 (limite 10GB)
 
 ### Trafic estimé
 
-| Métrique | Volume/mois | D1 Inclus |
-|----------|-------------|-----------|
-| Reads (API calls) | ~5-10M | 25B ✅ |
-| Writes (ingests) | ~500K-1M | 50M ✅ |
+| Métrique          | Volume/mois | D1 Inclus |
+| ----------------- | ----------- | --------- |
+| Reads (API calls) | ~5-10M      | 25B ✅    |
+| Writes (ingests)  | ~500K-1M    | 50M ✅    |
 
 **Verdict:** ✅ Largement dans le tier inclus
 
@@ -145,6 +146,7 @@ wrangler d1 create ucm-staging
 ```
 
 **wrangler.toml:**
+
 ```toml
 name = "ucm-api"
 main = "src/index.ts"
@@ -183,6 +185,7 @@ export const db = drizzle(env.DB, { schema });
 ### Phase 3: Migrer l'API Fastify → Workers (4-6h)
 
 **Structure proposée:**
+
 ```
 packages/api-worker/
 ├── src/
@@ -252,6 +255,7 @@ export default app;
 Le pipeline (`ingest.ts`, `compute.ts`) tourne actuellement en local. Options:
 
 #### Option A: Pipeline Local → D1 HTTP API
+
 ```typescript
 // Utiliser wrangler pour exécuter des requêtes
 import { execSync } from 'child_process';
@@ -263,6 +267,7 @@ async function insertBatch(events: NormalizedEvent[]) {
 ```
 
 #### Option B: Pipeline comme Scheduled Worker (recommandé)
+
 ```typescript
 // wrangler.toml
 [triggers]
@@ -279,6 +284,7 @@ export default {
 ```
 
 #### Option C: GitHub Actions + D1 REST API
+
 ```yaml
 # .github/workflows/ingest.yml
 name: Data Ingestion
@@ -310,6 +316,7 @@ wrangler pages deploy dist
 ```
 
 **Configuration GitHub Integration:**
+
 - Build command: `pnpm --filter web build`
 - Output directory: `packages/web/dist`
 - Environment variable: `VITE_API_URL=https://ucm-api.<account>.workers.dev`
@@ -338,29 +345,29 @@ wrangler d1 execute ucm-production --command="SELECT COUNT(*) FROM places"
 
 ### `packages/pipeline`
 
-| Fichier | Changement |
-|---------|------------|
-| `db/index.ts` | Remplacer `better-sqlite3` par D1 client |
-| `jobs/ingest.ts` | Adapter pour D1 batch API |
-| `jobs/compute.ts` | Adapter pour D1 batch API |
-| `package.json` | Retirer `better-sqlite3`, ajouter `@cloudflare/workers-types` |
+| Fichier           | Changement                                                    |
+| ----------------- | ------------------------------------------------------------- |
+| `db/index.ts`     | Remplacer `better-sqlite3` par D1 client                      |
+| `jobs/ingest.ts`  | Adapter pour D1 batch API                                     |
+| `jobs/compute.ts` | Adapter pour D1 batch API                                     |
+| `package.json`    | Retirer `better-sqlite3`, ajouter `@cloudflare/workers-types` |
 
 ### `packages/api` → `packages/api-worker`
 
-| Changement | Détail |
-|------------|--------|
+| Changement      | Détail                                    |
+| --------------- | ----------------------------------------- |
 | Nouveau package | Worker Cloudflare (ou adapter l'existant) |
-| Framework | Fastify → Hono (ou Workers natif) |
-| DB connection | `better-sqlite3` → `drizzle-orm/d1` |
-| Deployment | PM2/Node → `wrangler deploy` |
+| Framework       | Fastify → Hono (ou Workers natif)         |
+| DB connection   | `better-sqlite3` → `drizzle-orm/d1`       |
+| Deployment      | PM2/Node → `wrangler deploy`              |
 
 ### `packages/web`
 
-| Fichier | Changement |
-|---------|------------|
-| `api/client.ts` | Mettre à jour `API_BASE_URL` |
-| `vite.config.ts` | Configurer pour Pages |
-| Aucun autre | Le frontend reste identique |
+| Fichier          | Changement                   |
+| ---------------- | ---------------------------- |
+| `api/client.ts`  | Mettre à jour `API_BASE_URL` |
+| `vite.config.ts` | Configurer pour Pages        |
+| Aucun autre      | Le frontend reste identique  |
 
 ### `packages/shared`
 
@@ -396,17 +403,18 @@ await db.batch([
 
 ### 3. Limites D1 à respecter
 
-| Limite | Valeur | Impact |
-|--------|--------|--------|
-| Statement size | 100KB | OK pour nos queries |
-| Bound params | 100 | Chunker les gros inserts |
-| Query duration | 30s | Optimiser les compute jobs |
-| Rows per query | Illimité | ✅ |
-| DB size | 10GB | ✅ (estimé 2-3GB) |
+| Limite         | Valeur   | Impact                     |
+| -------------- | -------- | -------------------------- |
+| Statement size | 100KB    | OK pour nos queries        |
+| Bound params   | 100      | Chunker les gros inserts   |
+| Query duration | 30s      | Optimiser les compute jobs |
+| Rows per query | Illimité | ✅                         |
+| DB size        | 10GB     | ✅ (estimé 2-3GB)          |
 
 ### 4. Pas de Full-Text Search natif
 
 D1 n'a pas `FTS5`. Solutions:
+
 - **Option A:** LIKE queries (OK pour petits volumes)
 - **Option B:** Vectorize (Cloudflare AI embeddings) pour recherche sémantique
 - **Option C:** Algolia/Meilisearch externe
@@ -414,6 +422,7 @@ D1 n'a pas `FTS5`. Solutions:
 ### 5. Cold Starts Workers
 
 Workers ont ~0-50ms cold start vs Fastify toujours chaud.
+
 - Mitigation: Workers restent warm avec trafic régulier
 - Pas un problème pour ce use case
 
@@ -421,16 +430,16 @@ Workers ont ~0-50ms cold start vs Fastify toujours chaud.
 
 ## Timeline Estimée
 
-| Phase | Durée | Dépendances |
-|-------|-------|-------------|
-| 1. Setup Infrastructure | 1-2h | Compte CF configuré |
-| 2. Adapter Schema | 1-2h | - |
-| 3. Migrer API | 4-6h | Phase 1-2 |
-| 4. Adapter Pipeline | 2-4h | Phase 1-2 |
-| 5. Deploy Frontend | 1h | Phase 3 |
-| 6. Migration Données | 1-2h | Phase 1-5 |
-| 7. Tests & Validation | 2-4h | Tout |
-| **TOTAL** | **12-20h** | |
+| Phase                   | Durée      | Dépendances         |
+| ----------------------- | ---------- | ------------------- |
+| 1. Setup Infrastructure | 1-2h       | Compte CF configuré |
+| 2. Adapter Schema       | 1-2h       | -                   |
+| 3. Migrer API           | 4-6h       | Phase 1-2           |
+| 4. Adapter Pipeline     | 2-4h       | Phase 1-2           |
+| 5. Deploy Frontend      | 1h         | Phase 3             |
+| 6. Migration Données    | 1-2h       | Phase 1-5           |
+| 7. Tests & Validation   | 2-4h       | Tout                |
+| **TOTAL**               | **12-20h** |                     |
 
 ---
 
@@ -438,14 +447,14 @@ Workers ont ~0-50ms cold start vs Fastify toujours chaud.
 
 ### Workers Paid Plan: $5/mois
 
-| Resource | Inclus | Usage estimé | Coût additionnel |
-|----------|--------|--------------|------------------|
-| Workers requests | 10M | ~5M | $0 |
-| D1 reads | 25B | ~10M | $0 |
-| D1 writes | 50M | ~1M | $0 |
-| D1 storage | 5GB | ~3GB | $0 |
-| Pages | Illimité | - | $0 |
-| **TOTAL** | | | **$5/mois** |
+| Resource         | Inclus   | Usage estimé | Coût additionnel |
+| ---------------- | -------- | ------------ | ---------------- |
+| Workers requests | 10M      | ~5M          | $0               |
+| D1 reads         | 25B      | ~10M         | $0               |
+| D1 writes        | 50M      | ~1M          | $0               |
+| D1 storage       | 5GB      | ~3GB         | $0               |
+| Pages            | Illimité | -            | $0               |
+| **TOTAL**        |          |              | **$5/mois**      |
 
 vs. VPS actuel: ~$10-50/mois + maintenance
 
@@ -466,6 +475,7 @@ Si problème après migration:
 ### Recommandation: **GO pour la migration**
 
 **Avantages:**
+
 - Coût réduit ($5 vs $10-50)
 - Zero maintenance infrastructure
 - Scalabilité globale automatique
@@ -474,6 +484,7 @@ Si problème après migration:
 - Frontend sur CDN mondial
 
 **Risques mitigés:**
+
 - Volumétrie OK (2-3GB < 10GB limite)
 - Trafic OK (largement dans les quotas)
 - Drizzle compatible, pas de rewrite schema

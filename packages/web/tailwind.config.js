@@ -6,16 +6,16 @@ export default {
       colors: {
         // Intensity colors
         intensity: {
-          low: '#94a3b8',      // slate-400
-          medium: '#fbbf24',   // amber-400
-          high: '#f97316',     // orange-500
-          extreme: '#dc2626',  // red-600
+          low: '#94a3b8', // slate-400
+          medium: '#fbbf24', // amber-400
+          high: '#f97316', // orange-500
+          extreme: '#dc2626', // red-600
         },
         // Certainty indicators
         certainty: {
-          discussion: 'rgba(148, 163, 184, 0.4)',  // slate-400 40%
-          probable: 'rgba(251, 191, 36, 0.7)',     // amber-400 70%
-          certain: 'rgba(34, 197, 94, 1)',         // green-500 100%
+          discussion: 'rgba(148, 163, 184, 0.4)', // slate-400 40%
+          probable: 'rgba(251, 191, 36, 0.7)', // amber-400 70%
+          certain: 'rgba(34, 197, 94, 1)', // green-500 100%
         },
       },
       animation: {

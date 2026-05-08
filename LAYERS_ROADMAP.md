@@ -26,54 +26,55 @@
 
 ## Milestones
 
-| # | Milestone | Description | Priority | Est. Effort |
-|---|-----------|-------------|----------|-------------|
-| M1 | **Building Quality Layer** | HPD violations, complaints, rent stabilization | P0 | Large |
-| M2 | **Safety & Quality of Life** | 311 complaints, crime, noise | P0 | Medium |
-| M3 | **Transit Access Layer** | Subway, bus, bike accessibility | P1 | Medium |
-| M4 | **Environmental Layer** | Air quality, flood zones, noise | P1 | Small |
-| M5 | **Economic Layer** | Property values, sales, taxes | P2 | Medium |
-| M6 | **Unified Quality Score** | Combine all layers into single score | P2 | Medium |
-| M7 | **UI Layer Controls** | Toggle layers, customize weights | P2 | Medium |
+| #   | Milestone                    | Description                                    | Priority | Est. Effort |
+| --- | ---------------------------- | ---------------------------------------------- | -------- | ----------- |
+| M1  | **Building Quality Layer**   | HPD violations, complaints, rent stabilization | P0       | Large       |
+| M2  | **Safety & Quality of Life** | 311 complaints, crime, noise                   | P0       | Medium      |
+| M3  | **Transit Access Layer**     | Subway, bus, bike accessibility                | P1       | Medium      |
+| M4  | **Environmental Layer**      | Air quality, flood zones, noise                | P1       | Small       |
+| M5  | **Economic Layer**           | Property values, sales, taxes                  | P2       | Medium      |
+| M6  | **Unified Quality Score**    | Combine all layers into single score           | P2       | Medium      |
+| M7  | **UI Layer Controls**        | Toggle layers, customize weights               | P2       | Medium      |
 
 ---
 
 # Milestone 1: Building Quality Layer
 
 ## Objective
+
 Show the physical condition and tenant protection status of every building in NYC.
 
 ## Data Sources
 
-| Source | Endpoint | Records | Key Fields |
-|--------|----------|---------|------------|
-| HPD Violations | `wvxf-dwi5` | 4M+ | Class A/B/C, BIN, BBL, Status |
-| HPD Complaints | `ygpa-z7cr` | 13M+ | MajorCategory, Status, BIN |
-| Rent Stabilization | NYCDB `rentstab` | ~1M | Unit counts by BBL |
-| Evictions Executed | `6z8x-wfk4` | 105K | Address, BIN, Date |
-| HPD Registrations | `tesw-yqqr` | ~300K | Owner info, contacts |
-| HPD Litigations | `59kj-x8nc` | ~50K | Case status, type |
-| Building Age | PLUTO `YearBuilt` | Already have | Construction year |
+| Source             | Endpoint          | Records      | Key Fields                    |
+| ------------------ | ----------------- | ------------ | ----------------------------- |
+| HPD Violations     | `wvxf-dwi5`       | 4M+          | Class A/B/C, BIN, BBL, Status |
+| HPD Complaints     | `ygpa-z7cr`       | 13M+         | MajorCategory, Status, BIN    |
+| Rent Stabilization | NYCDB `rentstab`  | ~1M          | Unit counts by BBL            |
+| Evictions Executed | `6z8x-wfk4`       | 105K         | Address, BIN, Date            |
+| HPD Registrations  | `tesw-yqqr`       | ~300K        | Owner info, contacts          |
+| HPD Litigations    | `59kj-x8nc`       | ~50K         | Case status, type             |
+| Building Age       | PLUTO `YearBuilt` | Already have | Construction year             |
 
 ## Building Quality Score Formula
 
 ```typescript
 interface BuildingQualityScore {
-  score: number;  // 0-100, higher = better
+  score: number; // 0-100, higher = better
 
   components: {
     // Physical Condition (40% weight)
     physical: {
-      violationScore: number;    // Based on HPD violations
-      complaintScore: number;    // Based on HPD complaints
-      ageScore: number;          // Newer = slightly better
+      violationScore: number; // Based on HPD violations
+      complaintScore: number; // Based on HPD complaints
+      ageScore: number; // Newer = slightly better
     };
 
     // Tenant Protection (30% weight)
     protection: {
       rentStabilized: boolean;
-      evictionRisk: number;      // Based on neighborhood eviction rate
-      speculationRisk: boolean;  // On HPD watch list
+      evictionRisk: number; // Based on neighborhood eviction rate
+      speculationRisk: boolean; // On HPD watch list
     };
 
     // Maintenance Quality (30% weight)
@@ -89,6 +90,7 @@ interface BuildingQualityScore {
 ## Scoring Logic
 
 ### HPD Violations Score (0-100)
+
 ```
 Base: 100
 - Class C violation (immediately hazardous): -15 per open
@@ -101,6 +103,7 @@ Floor: 0
 ```
 
 ### HPD Complaints Score (0-100)
+
 ```
 Base: 100
 - Open complaint: -3 per complaint
@@ -112,6 +115,7 @@ Floor: 0
 ```
 
 ### Eviction Risk Score (0-100)
+
 ```
 Base: 100
 - Eviction executed at this building: -30
@@ -122,6 +126,7 @@ Base: 100
 ## Implementation Plan
 
 ### Phase 1: Data Ingestion (Week 1)
+
 ```
 Task 1.1: Create hpd-violations.ts ingest
   - Fetch from Socrata API with pagination
@@ -144,6 +149,7 @@ Task 1.4: Integrate rent stabilization data
 ```
 
 ### Phase 2: Score Computation (Week 2)
+
 ```
 Task 2.1: Add BuildingQualityScore type to shared
 Task 2.2: Create compute/building-quality.ts
@@ -159,6 +165,7 @@ Task 2.4: Update compute job to include building quality
 ```
 
 ### Phase 3: API & Frontend (Week 3)
+
 ```
 Task 3.1: Add /places/:id/quality endpoint
 Task 3.2: Add quality score to place list response
@@ -221,35 +228,36 @@ Building Quality Heatmap:
 # Milestone 2: Safety & Quality of Life Layer
 
 ## Objective
+
 Show neighborhood safety and livability based on 311 complaints, crime data, and quality-of-life indicators.
 
 ## Data Sources
 
-| Source | Endpoint | Records | Key Fields |
-|--------|----------|---------|------------|
-| 311 Complaints | `erm2-nwe9` | 30M+ | Type, Status, Location, Date |
-| 311 Noise | `p5f6-bkga` | 600K+/year | Noise type, Location |
-| NYPD Complaints | `5uac-w243` | ~500K/year | Offense, Location |
-| NYPD Arrests | `8h9b-rp9u` | ~200K/year | Charge, Location |
-| NYPD Shooting | `833y-fsy8` | ~2K/year | Location, Outcome |
+| Source          | Endpoint    | Records    | Key Fields                   |
+| --------------- | ----------- | ---------- | ---------------------------- |
+| 311 Complaints  | `erm2-nwe9` | 30M+       | Type, Status, Location, Date |
+| 311 Noise       | `p5f6-bkga` | 600K+/year | Noise type, Location         |
+| NYPD Complaints | `5uac-w243` | ~500K/year | Offense, Location            |
+| NYPD Arrests    | `8h9b-rp9u` | ~200K/year | Charge, Location             |
+| NYPD Shooting   | `833y-fsy8` | ~2K/year   | Location, Outcome            |
 
 ## Quality of Life Score Formula
 
 ```typescript
 interface QualityOfLifeScore {
-  score: number;  // 0-100, higher = better
+  score: number; // 0-100, higher = better
 
   components: {
     // Safety (40% weight)
     safety: {
-      crimeRate: number;         // Per capita
-      violentCrimeRate: number;  // Weighted higher
+      crimeRate: number; // Per capita
+      violentCrimeRate: number; // Weighted higher
       shootingIncidents: number;
     };
 
     // Noise & Nuisance (30% weight)
     noise: {
-      noiseComplaints: number;   // Per 1000 residents
+      noiseComplaints: number; // Per 1000 residents
       constructionNoise: number;
       residentialNoise: number;
     };
@@ -287,22 +295,15 @@ const QOL_CATEGORIES = {
     'Street Light Condition',
     'Traffic Signal Condition',
   ],
-  pest: [
-    'Rodent',
-    'Pest Control',
-  ],
-  housing: [
-    'HEAT/HOT WATER',
-    'PLUMBING',
-    'ELECTRIC',
-    'Elevator',
-  ],
+  pest: ['Rodent', 'Pest Control'],
+  housing: ['HEAT/HOT WATER', 'PLUMBING', 'ELECTRIC', 'Elevator'],
 };
 ```
 
 ## Implementation Plan
 
 ### Phase 1: 311 Data Ingestion (Week 1)
+
 ```
 Task 1.1: Create 311-complaints.ts ingest
   - Fetch with date range filtering
@@ -320,6 +321,7 @@ Task 1.3: Create 311 noise specialized ingest
 ```
 
 ### Phase 2: Crime Data Ingestion (Week 2)
+
 ```
 Task 2.1: Create nypd-complaints.ts ingest
   - Fetch NYPD complaint data
@@ -333,6 +335,7 @@ Task 2.2: Create crime rate computation
 ```
 
 ### Phase 3: Score Computation (Week 2-3)
+
 ```
 Task 3.1: Add QualityOfLifeScore type
 Task 3.2: Create compute/quality-of-life.ts
@@ -341,6 +344,7 @@ Task 3.4: Implement scoring algorithm
 ```
 
 ### Phase 4: API & Frontend (Week 3)
+
 ```
 Task 4.1: Add /neighborhoods/:h3/quality endpoint
 Task 4.2: Create QualityOfLife heatmap layer
@@ -391,45 +395,46 @@ QoL Heatmap Layer:
 # Milestone 3: Transit Access Layer
 
 ## Objective
+
 Show how well-connected each location is to public transit, with accessibility info.
 
 ## Data Sources
 
-| Source | Endpoint | Records | Key Fields |
-|--------|----------|---------|------------|
-| MTA Subway Stations | `5f5g-n3cz` | 424 | Location, Lines, ADA |
-| MTA Bus Stops | MTA GTFS | ~16K | Location, Routes |
-| MTA Elevators | MTA API | ~400 | Status, Station |
-| Citibike Stations | Citibike API | ~1800 | Location, Capacity |
-| PATH Stations | - | 13 | Location |
+| Source              | Endpoint     | Records | Key Fields           |
+| ------------------- | ------------ | ------- | -------------------- |
+| MTA Subway Stations | `5f5g-n3cz`  | 424     | Location, Lines, ADA |
+| MTA Bus Stops       | MTA GTFS     | ~16K    | Location, Routes     |
+| MTA Elevators       | MTA API      | ~400    | Status, Station      |
+| Citibike Stations   | Citibike API | ~1800   | Location, Capacity   |
+| PATH Stations       | -            | 13      | Location             |
 
 ## Transit Score Formula
 
 ```typescript
 interface TransitScore {
-  score: number;  // 0-100, higher = better
+  score: number; // 0-100, higher = better
 
   components: {
     // Subway Access (50% weight)
     subway: {
-      nearestStation: number;     // meters
-      walkTime: number;           // minutes
-      linesAvailable: string[];   // A, C, E, etc.
-      expressAccess: boolean;     // Express trains
-      isAccessible: boolean;      // ADA compliant
+      nearestStation: number; // meters
+      walkTime: number; // minutes
+      linesAvailable: string[]; // A, C, E, etc.
+      expressAccess: boolean; // Express trains
+      isAccessible: boolean; // ADA compliant
     };
 
     // Bus Access (25% weight)
     bus: {
       stopsWithin400m: number;
       routesAvailable: number;
-      selectBusService: boolean;  // SBS = faster
+      selectBusService: boolean; // SBS = faster
     };
 
     // Bike Infrastructure (15% weight)
     bike: {
-      citibikeStations: number;   // within 400m
-      bikeLanes: boolean;         // protected lanes nearby
+      citibikeStations: number; // within 400m
+      bikeLanes: boolean; // protected lanes nearby
     };
 
     // Accessibility (10% weight)
@@ -445,6 +450,7 @@ interface TransitScore {
 ## Scoring Logic
 
 ### Subway Score (0-100)
+
 ```
 Distance to nearest station:
   < 400m (5 min walk):  100
@@ -460,6 +466,7 @@ Bonuses:
 ```
 
 ### Bus Score (0-100)
+
 ```
 Stops within 400m:
   3+ stops: 100
@@ -475,6 +482,7 @@ Bonuses:
 ## Implementation Plan
 
 ### Phase 1: Transit Data Ingestion (Week 1)
+
 ```
 Task 1.1: Create mta-stations.ts ingest
   - Fetch subway station locations
@@ -496,6 +504,7 @@ Task 1.4: Create elevator-status.ts (real-time)
 ```
 
 ### Phase 2: Spatial Indexing (Week 1-2)
+
 ```
 Task 2.1: Add transit_stations table
   - Indexed by H3 cell
@@ -507,6 +516,7 @@ Task 2.2: Create spatial query helpers
 ```
 
 ### Phase 3: Score Computation (Week 2)
+
 ```
 Task 3.1: Add TransitScore type
 Task 3.2: Create compute/transit-score.ts
@@ -515,6 +525,7 @@ Task 3.4: Add real-time elevator adjustment
 ```
 
 ### Phase 4: API & Frontend (Week 3)
+
 ```
 Task 4.1: Add /transit/score endpoint
 Task 4.2: Create TransitLayer component
@@ -579,54 +590,55 @@ Transit Score Badge:
 # Milestone 4: Environmental Quality Layer
 
 ## Objective
+
 Show environmental factors affecting health and safety: air quality, flood risk, noise levels.
 
 ## Data Sources
 
-| Source | Endpoint | Records | Key Fields |
-|--------|----------|---------|------------|
-| Air Quality | `c3uy-2p5r` | ~10K | PM2.5, Ozone, Location |
-| Flood Zones (FEMA, predicted) | `4vym-qrg3` | Polygons | FEMA zones, Risk level |
-| **FloodNet events (measured)** | `aq7i-eu5q` | ~daily | Max depth, duration, sensor_id |
-| **FloodNet sensors metadata** | `kb2e-tjy3` | ~200 sensors | lat/lon, NTA, tidal flag |
-| Noise Levels | 311 + Studies | - | Decibel estimates |
-| Tree Canopy | NYC Parks | Polygons | Coverage % |
-| Heat Vulnerability | `rvn8-2qkj` | Index | Heat risk |
+| Source                         | Endpoint      | Records      | Key Fields                     |
+| ------------------------------ | ------------- | ------------ | ------------------------------ |
+| Air Quality                    | `c3uy-2p5r`   | ~10K         | PM2.5, Ozone, Location         |
+| Flood Zones (FEMA, predicted)  | `4vym-qrg3`   | Polygons     | FEMA zones, Risk level         |
+| **FloodNet events (measured)** | `aq7i-eu5q`   | ~daily       | Max depth, duration, sensor_id |
+| **FloodNet sensors metadata**  | `kb2e-tjy3`   | ~200 sensors | lat/lon, NTA, tidal flag       |
+| Noise Levels                   | 311 + Studies | -            | Decibel estimates              |
+| Tree Canopy                    | NYC Parks     | Polygons     | Coverage %                     |
+| Heat Vulnerability             | `rvn8-2qkj`   | Index        | Heat risk                      |
 
-> **FEMA vs FloodNet** : FEMA = risque *prédit* (100yr/500yr floodplain, statique). FloodNet = risque *mesuré* au niveau rue, 1 mesure/min, capteurs NYU+CUNY+NYC DEP. Les deux sont complémentaires — garder FEMA pour la couverture complète, FloodNet pour le signal réel. Voir `INTEGRATION_SPECS.md` §4 pour les détails techniques.
+> **FEMA vs FloodNet** : FEMA = risque _prédit_ (100yr/500yr floodplain, statique). FloodNet = risque _mesuré_ au niveau rue, 1 mesure/min, capteurs NYU+CUNY+NYC DEP. Les deux sont complémentaires — garder FEMA pour la couverture complète, FloodNet pour le signal réel. Voir `INTEGRATION_SPECS.md` §4 pour les détails techniques.
 
 ## Environmental Score Formula
 
 ```typescript
 interface EnvironmentalScore {
-  score: number;  // 0-100, higher = better
+  score: number; // 0-100, higher = better
 
   components: {
     // Air Quality (35% weight)
     air: {
-      pm25: number;          // Fine particles
-      ozone: number;         // Ground-level ozone
-      no2: number;           // Nitrogen dioxide
+      pm25: number; // Fine particles
+      ozone: number; // Ground-level ozone
+      no2: number; // Nitrogen dioxide
       airQualityIndex: number;
     };
 
     // Climate Risk (35% weight)
     climate: {
-      floodZone: 'none' | 'moderate' | 'high' | 'extreme';  // FEMA (predicted)
+      floodZone: 'none' | 'moderate' | 'high' | 'extreme'; // FEMA (predicted)
       heatVulnerability: number;
       coastalRisk: boolean;
 
       // FloodNet sensors (measured)
-      measuredFloodFrequency: number;    // events/year near this location
-      measuredMaxDepth: number;          // p95 max depth observed (inches)
-      nearestSensorDistanceM: number;    // distance to nearest active sensor
-      tidallyInfluenced: boolean;        // nearby sensor flagged tidal
+      measuredFloodFrequency: number; // events/year near this location
+      measuredMaxDepth: number; // p95 max depth observed (inches)
+      nearestSensorDistanceM: number; // distance to nearest active sensor
+      tidallyInfluenced: boolean; // nearby sensor flagged tidal
     };
 
     // Green Space (30% weight)
     green: {
-      treeCanopy: number;    // % coverage
-      parkAccess: number;    // meters to nearest
+      treeCanopy: number; // % coverage
+      parkAccess: number; // meters to nearest
       greenScore: number;
     };
   };
@@ -636,6 +648,7 @@ interface EnvironmentalScore {
 ## Implementation Plan
 
 ### Phase 1: Data Ingestion (Week 1)
+
 ```
 Task 1.1: Create air-quality.ts ingest
   - Fetch air quality measurements
@@ -661,6 +674,7 @@ Task 1.4: Create parks.ts ingest
 ```
 
 ### Phase 2: Score Computation (Week 2)
+
 ```
 Task 2.1: Add EnvironmentalScore type
 Task 2.2: Create compute/environmental-score.ts
@@ -668,6 +682,7 @@ Task 2.3: Store scores by H3 cell
 ```
 
 ### Phase 3: API & Frontend (Week 2-3)
+
 ```
 Task 3.1: Add /environmental/score endpoint
 Task 3.2: Create FloodZoneLayer component
@@ -718,17 +733,18 @@ Flood Zone Overlay:
 # Milestone 5: Economic Layer
 
 ## Objective
+
 Show property values, sales history, and economic indicators.
 
 ## Data Sources
 
-| Source | Endpoint | Records | Key Fields |
-|--------|----------|---------|------------|
-| Property Sales | ACRIS | Millions | Sale price, Date |
-| DOF Sales | `usep-8jbt` | ~100K/yr | Price, Address |
-| Tax Assessments | DOF | ~1M | Assessed value |
-| 421a Exemptions | NYCDB | ~50K | Exemption end date |
-| Median Rent | Census ACS | By tract | Rent estimates |
+| Source          | Endpoint    | Records  | Key Fields         |
+| --------------- | ----------- | -------- | ------------------ |
+| Property Sales  | ACRIS       | Millions | Sale price, Date   |
+| DOF Sales       | `usep-8jbt` | ~100K/yr | Price, Address     |
+| Tax Assessments | DOF         | ~1M      | Assessed value     |
+| 421a Exemptions | NYCDB       | ~50K     | Exemption end date |
+| Median Rent     | Census ACS  | By tract | Rent estimates     |
 
 ## Economic Score Formula
 
@@ -747,8 +763,8 @@ interface EconomicIndicators {
   neighborhood: {
     medianSalePrice: number;
     medianRent: number;
-    priceChange1yr: number;    // %
-    priceChange5yr: number;    // %
+    priceChange1yr: number; // %
+    priceChange5yr: number; // %
   };
 
   exemptions: {
@@ -762,6 +778,7 @@ interface EconomicIndicators {
 ## Implementation Plan
 
 ### Phase 1: Data Ingestion (Week 1-2)
+
 ```
 Task 1.1: Create acris.ts ingest
   - Fetch real property records
@@ -778,6 +795,7 @@ Task 1.3: Create tax-exemptions.ts ingest
 ```
 
 ### Phase 2: Computation (Week 2)
+
 ```
 Task 2.1: Create compute/economic.ts
   - Aggregate by building
@@ -786,6 +804,7 @@ Task 2.1: Create compute/economic.ts
 ```
 
 ### Phase 3: API & Frontend (Week 3)
+
 ```
 Task 3.1: Add /places/:id/economic endpoint
 Task 3.2: Create PropertyValuePanel
@@ -798,19 +817,20 @@ Task 3.4: Add sales layer (recent sales dots)
 # Milestone 6: Unified Quality Score
 
 ## Objective
+
 Combine all layers into a single, customizable quality score.
 
 ## Formula
 
 ```typescript
 interface UnifiedQualityScore {
-  overall: number;  // 0-100
+  overall: number; // 0-100
 
   weights: {
-    buildingQuality: number;    // default 0.30
-    safetyQoL: number;          // default 0.25
-    transitAccess: number;      // default 0.25
-    environmental: number;      // default 0.20
+    buildingQuality: number; // default 0.30
+    safetyQoL: number; // default 0.25
+    transitAccess: number; // default 0.25
+    environmental: number; // default 0.20
   };
 
   components: {
@@ -848,6 +868,7 @@ Task 6.4: Create comparison mode
 # Milestone 7: UI Layer Controls
 
 ## Objective
+
 Allow users to toggle layers, customize weights, and filter the map.
 
 ## Features
@@ -919,17 +940,17 @@ Phase 4 (Polish): Advanced UI
 
 # Data Volume Estimates
 
-| Dataset | Records | Storage Est. |
-|---------|---------|--------------|
-| HPD Violations | 4M | ~800 MB |
-| HPD Complaints | 13M | ~2 GB |
-| 311 Complaints | 30M+ | ~5 GB (aggregated: ~100 MB) |
-| NYPD Data | ~700K/yr | ~500 MB |
-| MTA Stations | 424 | <1 MB |
-| Flood Zones | Polygons | ~50 MB |
-| ACRIS | Millions | ~2 GB |
-| **Total (raw)** | - | **~10+ GB** |
-| **Total (aggregated)** | - | **~1-2 GB** |
+| Dataset                | Records  | Storage Est.                |
+| ---------------------- | -------- | --------------------------- |
+| HPD Violations         | 4M       | ~800 MB                     |
+| HPD Complaints         | 13M      | ~2 GB                       |
+| 311 Complaints         | 30M+     | ~5 GB (aggregated: ~100 MB) |
+| NYPD Data              | ~700K/yr | ~500 MB                     |
+| MTA Stations           | 424      | <1 MB                       |
+| Flood Zones            | Polygons | ~50 MB                      |
+| ACRIS                  | Millions | ~2 GB                       |
+| **Total (raw)**        | -        | **~10+ GB**                 |
+| **Total (aggregated)** | -        | **~1-2 GB**                 |
 
 **Strategy**: Aggregate to H3 cells for heatmaps, keep detail for building-level queries.
 

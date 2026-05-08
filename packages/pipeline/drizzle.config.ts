@@ -5,7 +5,9 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env['DATABASE_URL'] ?? 'postgres://ucm:ucm_dev_password@localhost:5432/urban_change_map',
+    url:
+      process.env['DATABASE_URL'] ??
+      'postgres://ucm:ucm_dev_password@localhost:5432/urban_change_map',
   },
   verbose: true,
   strict: true,

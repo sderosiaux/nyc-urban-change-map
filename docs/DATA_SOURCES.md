@@ -12,19 +12,19 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Department of Buildings
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
-| **DOB NOW** | `rbx6-tga4` | ✅ Implemented | Active permits, current status, ongoing work |
+| Source                  | Dataset ID  | Status         | Description                                          |
+| ----------------------- | ----------- | -------------- | ---------------------------------------------------- |
+| **DOB NOW**             | `rbx6-tga4` | ✅ Implemented | Active permits, current status, ongoing work         |
 | **DOB Permit Issuance** | `ipu4-2q9a` | ✅ Implemented | Historical permits, trends, chronically active zones |
-| **DOB Complaints** | `eabe-havv` | ✅ Implemented | Building complaints |
-| **DOB Violations** | `3h2n-5cm9` | ✅ Implemented | ECB and DOB violations |
+| **DOB Complaints**      | `eabe-havv` | ✅ Implemented | Building complaints                                  |
+| **DOB Violations**      | `3h2n-5cm9` | ✅ Implemented | ECB and DOB violations                               |
 
 #### Ingestion Pipelines
 
-| Pipeline | File | Status |
-|----------|------|--------|
-| `dob` | `src/ingest/dob.ts` | ✅ Implemented |
-| `dob-now` | `src/ingest/dob-now.ts` | ✅ Implemented |
+| Pipeline         | File                           | Status         |
+| ---------------- | ------------------------------ | -------------- |
+| `dob`            | `src/ingest/dob.ts`            | ✅ Implemented |
+| `dob-now`        | `src/ingest/dob-now.ts`        | ✅ Implemented |
 | `dob-violations` | `src/ingest/dob-violations.ts` | ✅ Implemented |
 | `dob-complaints` | `src/ingest/dob-complaints.ts` | ✅ Implemented |
 
@@ -36,18 +36,18 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Department of City Planning
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
-| **ZAP Projects** | `hgx4-8ukb` | ✅ Implemented | Zoning applications, ULURP, special permits |
-| **CEQR Projects** | `gezn-7mgk` | ✅ Implemented | Environmental Quality Review projects |
-| **CEQR Milestones** | `8fj8-3sgg` | ✅ Implemented | CEQR project milestones |
+| Source              | Dataset ID  | Status         | Description                                 |
+| ------------------- | ----------- | -------------- | ------------------------------------------- |
+| **ZAP Projects**    | `hgx4-8ukb` | ✅ Implemented | Zoning applications, ULURP, special permits |
+| **CEQR Projects**   | `gezn-7mgk` | ✅ Implemented | Environmental Quality Review projects       |
+| **CEQR Milestones** | `8fj8-3sgg` | ✅ Implemented | CEQR project milestones                     |
 
 #### Ingestion Pipelines
 
-| Pipeline | File | Status |
-|----------|------|--------|
-| `zap` | `src/ingest/zap.ts` | ✅ Implemented |
-| `ceqr` | `src/ingest/ceqr.ts` | ✅ Implemented |
+| Pipeline | File                 | Status         |
+| -------- | -------------------- | -------------- |
+| `zap`    | `src/ingest/zap.ts`  | ✅ Implemented |
+| `ceqr`   | `src/ingest/ceqr.ts` | ✅ Implemented |
 
 ---
 
@@ -57,14 +57,14 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Office of Management and Budget
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
+| Source                      | Dataset ID  | Status         | Description                        |
+| --------------------------- | ----------- | -------------- | ---------------------------------- |
 | **Capital Projects (CPDB)** | `h2ic-zdws` | ✅ Implemented | Multi-year infrastructure projects |
 
 #### Ingestion Pipelines
 
-| Pipeline | File | Status |
-|----------|------|--------|
+| Pipeline  | File                    | Status         |
+| --------- | ----------------------- | -------------- |
 | `capital` | `src/ingest/capital.ts` | ✅ Implemented |
 
 ---
@@ -75,19 +75,19 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Department of City Planning
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
-| **PLUTO** | `64uk-42ks` | ✅ Implemented | Building use, zoning, year built, density |
-| **MapPLUTO** | Shapefile | 🔴 Not Started | PLUTO with geometry |
-| **PAD** | `bc8t-ecyu` | ✅ Implemented | Address ↔ BBL ↔ geometry mapping |
-| **PLUTO Change File** | TBD | 🔴 Not Started | Building stock evolution over time |
+| Source                | Dataset ID  | Status         | Description                               |
+| --------------------- | ----------- | -------------- | ----------------------------------------- |
+| **PLUTO**             | `64uk-42ks` | ✅ Implemented | Building use, zoning, year built, density |
+| **MapPLUTO**          | Shapefile   | 🔴 Not Started | PLUTO with geometry                       |
+| **PAD**               | `bc8t-ecyu` | ✅ Implemented | Address ↔ BBL ↔ geometry mapping          |
+| **PLUTO Change File** | TBD         | 🔴 Not Started | Building stock evolution over time        |
 
 #### Ingestion Pipelines
 
-| Pipeline | File | Status |
-|----------|------|--------|
-| `pluto` | `src/ingest/pluto.ts` | ✅ Implemented |
-| `pad` | `src/ingest/pad.ts` | ✅ Implemented |
+| Pipeline | File                  | Status         |
+| -------- | --------------------- | -------------- |
+| `pluto`  | `src/ingest/pluto.ts` | ✅ Implemented |
+| `pad`    | `src/ingest/pad.ts`   | ✅ Implemented |
 
 ---
 
@@ -97,16 +97,16 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Department of City Planning
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
-| **NTAs** | `9nt8-h7nd` | ✅ Implemented | Neighborhood Tabulation Areas (2020) |
-| **Community Districts** | `jp9i-3b7y` | ✅ Implemented | Political/administrative boundaries |
-| **Borough Boundaries** | `7t3b-ywvw` | ✅ Implemented | NYC borough boundaries |
+| Source                  | Dataset ID  | Status         | Description                          |
+| ----------------------- | ----------- | -------------- | ------------------------------------ |
+| **NTAs**                | `9nt8-h7nd` | ✅ Implemented | Neighborhood Tabulation Areas (2020) |
+| **Community Districts** | `jp9i-3b7y` | ✅ Implemented | Political/administrative boundaries  |
+| **Borough Boundaries**  | `7t3b-ywvw` | ✅ Implemented | NYC borough boundaries               |
 
 #### Ingestion Pipelines
 
-| Pipeline | File | Status |
-|----------|------|--------|
+| Pipeline     | File                       | Status         |
+| ------------ | -------------------------- | -------------- |
 | `boundaries` | `src/ingest/boundaries.ts` | ✅ Implemented |
 
 ---
@@ -117,10 +117,10 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ### NYC Department of Transportation / City Planning
 
-| Source | Dataset ID | Status | Description |
-|--------|------------|--------|-------------|
-| **LION** | Shapefile | 🔴 Not Started | Official street network graph |
-| **DCM** | Shapefile | 🔴 Not Started | Digital City Map - official street geometry |
+| Source   | Dataset ID | Status         | Description                                 |
+| -------- | ---------- | -------------- | ------------------------------------------- |
+| **LION** | Shapefile  | 🔴 Not Started | Official street network graph               |
+| **DCM**  | Shapefile  | 🔴 Not Started | Digital City Map - official street geometry |
 
 > Note: These are typically loaded as base layers, not ingested as events.
 
@@ -128,14 +128,14 @@ This document lists all NYC Open Data sources used by the Urban Change Map proje
 
 ## 7. Summary by Purpose
 
-| Category | Purpose | Key Sources |
-|----------|---------|-------------|
-| **Present/Active** | What's happening now | DOB NOW, DOB Permits |
-| **Historical** | What happened before | DOB Permit Issuance, Violations |
-| **Future (2-10 years)** | What's being planned | ZAP, CEQR |
-| **Public Infrastructure** | City-led changes | Capital Projects (CPDB) |
-| **Context** | Understanding buildings | PLUTO, PAD |
-| **Geography** | Spatial structure | NTAs, Community Districts, LION |
+| Category                  | Purpose                 | Key Sources                     |
+| ------------------------- | ----------------------- | ------------------------------- |
+| **Present/Active**        | What's happening now    | DOB NOW, DOB Permits            |
+| **Historical**            | What happened before    | DOB Permit Issuance, Violations |
+| **Future (2-10 years)**   | What's being planned    | ZAP, CEQR                       |
+| **Public Infrastructure** | City-led changes        | Capital Projects (CPDB)         |
+| **Context**               | Understanding buildings | PLUTO, PAD                      |
+| **Geography**             | Spatial structure       | NTAs, Community Districts, LION |
 
 ---
 
@@ -173,6 +173,7 @@ export const NYC_DATA_ENDPOINTS = {
 ## Rate Limiting
 
 NYC Open Data has rate limits:
+
 - Without app token: 1,000 requests/hour
 - With app token: 10,000 requests/hour
 

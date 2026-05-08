@@ -21,14 +21,14 @@ Objectif central:
 
 Aujourd'hui:
 
-* Les données existent mais sont fragmentées (DOB, Planning, PDFs, cartes séparées).
-* Impossible de répondre simplement à:
+- Les données existent mais sont fragmentées (DOB, Planning, PDFs, cartes séparées).
+- Impossible de répondre simplement à:
+  - "Qu'est-ce qui se passe près de chez moi ?"
+  - "Est-ce que ce quartier va beaucoup changer ?"
+  - "Quand ?"
 
-  * "Qu'est-ce qui se passe près de chez moi ?"
-  * "Est-ce que ce quartier va beaucoup changer ?"
-  * "Quand ?"
-* Trop de bruit administratif (scaffold, renewals, permits techniques).
-* Les documents clés (CEQR, ULURP) sont longs et illisibles pour un non-expert.
+- Trop de bruit administratif (scaffold, renewals, permits techniques).
+- Les documents clés (CEQR, ULURP) sont longs et illisibles pour un non-expert.
 
 ---
 
@@ -36,17 +36,17 @@ Aujourd'hui:
 
 ### Utilisateur principal
 
-* Habitants urbains curieux
-* Acheteurs / locataires
-* Journalistes locaux
-* Urbanistes amateurs
+- Habitants urbains curieux
+- Acheteurs / locataires
+- Journalistes locaux
+- Urbanistes amateurs
 
 ### Utilisateurs secondaires
 
-* Promoteurs
-* Investisseurs locaux
-* Associations de quartier
-* Cabinets d'architecture
+- Promoteurs
+- Investisseurs locaux
+- Associations de quartier
+- Cabinets d'architecture
 
 ---
 
@@ -54,11 +54,11 @@ Aujourd'hui:
 
 Le produit permet de:
 
-* Voir **où ça bouge**
-* Comprendre **quoi exactement**
-* Situer **quand ça arrive**
-* Comparer **avant / maintenant / futur**
-* Explorer **par quartier**, pas par permis
+- Voir **où ça bouge**
+- Comprendre **quoi exactement**
+- Situer **quand ça arrive**
+- Comparer **avant / maintenant / futur**
+- Explorer **par quartier**, pas par permis
 
 ---
 
@@ -70,15 +70,15 @@ Un lieu géographique stable dans le temps.
 
 Types:
 
-* Point (adresse / BIN)
-* Polygone (rezoning, parc, projet public)
+- Point (adresse / BIN)
+- Polygone (rezoning, parc, projet public)
 
 Champs:
 
-* place_id
-* geometry
-* neighborhood / NTA / Community District
-* radius_of_influence
+- place_id
+- geometry
+- neighborhood / NTA / Community District
+- radius_of_influence
 
 ---
 
@@ -88,17 +88,17 @@ Regroupement logique de dossiers administratifs qui décrivent une même transfo
 
 Un Project peut agréger:
 
-* plusieurs permis DOB
-* un dossier ZAP
-* des documents CEQR
-* des projets de capital public
+- plusieurs permis DOB
+- un dossier ZAP
+- des documents CEQR
+- des projets de capital public
 
 Champs:
 
-* project_id
-* place_id
-* project_type (private / public / rezoning)
-* confidence_level (low / medium / high)
+- project_id
+- place_id
+- project_type (private / public / rezoning)
+- confidence_level (low / medium / high)
 
 ---
 
@@ -108,21 +108,21 @@ Un événement daté dans la vie d'un projet.
 
 Exemples:
 
-* permit filed
-* permit issued
-* demolition
-* renewal
-* ULURP approved
-* construction started
-* expected completion
+- permit filed
+- permit issued
+- demolition
+- renewal
+- ULURP approved
+- construction started
+- expected completion
 
 Champs:
 
-* event_id
-* project_id
-* date or date_range
-* source
-* importance
+- event_id
+- project_id
+- date or date_range
+- source
+- importance
 
 Les Events alimentent les timelines.
 
@@ -132,25 +132,25 @@ Les Events alimentent les timelines.
 
 ### 6.1 Travaux et permis
 
-* DOB NOW (permits actifs, statut actuel)
-* DOB Permit Issuance (historique)
+- DOB NOW (permits actifs, statut actuel)
+- DOB Permit Issuance (historique)
 
 ### 6.2 Planification et futur
 
-* ZAP (ULURP, rezonings, special permits)
-* CEQR filings (PDFs)
+- ZAP (ULURP, rezonings, special permits)
+- CEQR filings (PDFs)
 
 ### 6.3 Projets publics
 
-* Capital Projects Database (polygones)
+- Capital Projects Database (polygones)
 
 ### 6.4 Géographie et contexte
 
-* PAD (adresse ↔ BBL ↔ géométrie)
-* PLUTO / MapPLUTO
-* Community Districts
-* NTAs
-* LION / Digital City Map
+- PAD (adresse ↔ BBL ↔ géométrie)
+- PLUTO / MapPLUTO
+- Community Districts
+- NTAs
+- LION / Digital City Map
 
 ---
 
@@ -158,9 +158,9 @@ Les Events alimentent les timelines.
 
 ### 7.1 Ingestion
 
-* Pull quotidien via APIs Open Data
-* Ingestion PDFs (CEQR, ULURP)
-* Stockage brut + versionné
+- Pull quotidien via APIs Open Data
+- Ingestion PDFs (CEQR, ULURP)
+- Stockage brut + versionné
 
 ### 7.2 Normalisation
 
@@ -168,16 +168,16 @@ Tous les enregistrements deviennent des Events normalisés.
 
 ### 7.3 Regroupement
 
-* Regroupement par BIN + proximité temporelle
-* Clustering des permits techniques
-* Fusion ZAP + DOB quand géométrie overlap
+- Regroupement par BIN + proximité temporelle
+- Clustering des permits techniques
+- Fusion ZAP + DOB quand géométrie overlap
 
 ### 7.4 Enrichissement
 
-* Ajout zoning (PLUTO)
-* Quartier officiel
-* Typologie bâtiment
-* Distance aux transports
+- Ajout zoning (PLUTO)
+- Quartier officiel
+- Typologie bâtiment
+- Distance aux transports
 
 ---
 
@@ -202,10 +202,10 @@ Score cappé à 100.
 
 ### 8.2 Niveaux de maturité
 
-* 0–20: stable
-* 20–50: frictions locales
-* 50–80: transformation active
-* 80–100: mutation lourde
+- 0–20: stable
+- 20–50: frictions locales
+- 50–80: transformation active
+- 80–100: mutation lourde
 
 ---
 
@@ -215,13 +215,12 @@ Le temps est un axe de navigation principal.
 
 Fonctionnalités:
 
-* Slider global (2000 → 2035)
-* Modes:
-
-  * passé
-  * présent
-  * futur proche (1–3 ans)
-  * futur lointain (3–10 ans)
+- Slider global (2000 → 2035)
+- Modes:
+  - passé
+  - présent
+  - futur proche (1–3 ans)
+  - futur lointain (3–10 ans)
 
 Chaque Event est positionné sur la timeline.
 
@@ -231,16 +230,16 @@ Chaque Event est positionné sur la timeline.
 
 ### 10.1 Vue par défaut
 
-* Carte NYC
-* Heatmap de transformation
-* Points et polygones superposés
+- Carte NYC
+- Heatmap de transformation
+- Points et polygones superposés
 
 ### 10.2 Encodage visuel
 
-* Taille: intensité
-* Couleur: maturité
-* Opacité: certitude
-* Polygones: projets structurants
+- Taille: intensité
+- Couleur: maturité
+- Opacité: certitude
+- Polygones: projets structurants
 
 ---
 
@@ -252,9 +251,9 @@ Affiche un panneau latéral:
 
 **Header**
 
-* Nom du lieu
-* Quartier
-* Statut global
+- Nom du lieu
+- Quartier
+- Statut global
 
 **Résumé humain**
 Texte synthétique généré:
@@ -268,8 +267,8 @@ Liste verticale d'Events cliquables.
 
 **Documents**
 
-* Résumés CEQR / ULURP
-* Lien vers PDFs officiels
+- Résumés CEQR / ULURP
+- Lien vers PDFs officiels
 
 ---
 
@@ -277,20 +276,20 @@ Liste verticale d'Events cliquables.
 
 ### Pipeline
 
-* Extraction texte
-* Résumé structuré:
+- Extraction texte
+- Résumé structuré:
+  - objectif
+  - périmètre
+  - impacts
+  - timeline
 
-  * objectif
-  * périmètre
-  * impacts
-  * timeline
-* Génération de milestones
+- Génération de milestones
 
 ### UI
 
-* 5 bullets max
-* Timeline simplifiée
-* Lien source
+- 5 bullets max
+- Timeline simplifiée
+- Lien source
 
 ---
 
@@ -298,16 +297,16 @@ Liste verticale d'Events cliquables.
 
 Filtres:
 
-* période
-* type de projet
-* intensité
-* public vs privé
+- période
+- type de projet
+- intensité
+- public vs privé
 
 Recherche:
 
-* adresse
-* quartier
-* rayon géographique
+- adresse
+- quartier
+- rayon géographique
 
 ---
 
@@ -315,27 +314,27 @@ Recherche:
 
 Possibilités:
 
-* suivre une zone
-* alerte quand score dépasse un seuil
-* alerte nouveaux projets futurs
+- suivre une zone
+- alerte quand score dépasse un seuil
+- alerte nouveaux projets futurs
 
 ---
 
 ## 15. Indicateurs de succès
 
-* Temps moyen passé sur la carte
-* Nombre de zones explorées par session
-* Usage du slider temporel
-* Taux de clic sur timelines
-* Retours qualitatifs ("j'ai compris mon quartier")
+- Temps moyen passé sur la carte
+- Nombre de zones explorées par session
+- Usage du slider temporel
+- Taux de clic sur timelines
+- Retours qualitatifs ("j'ai compris mon quartier")
 
 ---
 
 ## 16. Ce que le produit **n'est pas**
 
-* Un outil légal
-* Une promesse de certitude
-* Un substitut aux sources officielles
+- Un outil légal
+- Une promesse de certitude
+- Un substitut aux sources officielles
 
 Le produit montre **l'état observable et interprété** de la ville.
 
@@ -345,22 +344,22 @@ Le produit montre **l'état observable et interprété** de la ville.
 
 ### Phase 1
 
-* Greenpoint / Brooklyn
-* Carte + heatmap
-* Permits + ZAP
-* Timeline simple
+- Greenpoint / Brooklyn
+- Carte + heatmap
+- Permits + ZAP
+- Timeline simple
 
 ### Phase 2
 
-* PDFs résumés
-* Capital projects
-* Notifications
+- PDFs résumés
+- Capital projects
+- Notifications
 
 ### Phase 3
 
-* Extension NYC
-* Comparaison inter-quartiers
-* Analyse historique longue
+- Extension NYC
+- Comparaison inter-quartiers
+- Analyse historique longue
 
 ---
 

@@ -5,6 +5,7 @@
 ### Implemented
 
 #### Pipeline Ingest (Bulk Data)
+
 - [x] **DOB Permit Issuance** - Historical permits (ends 2020)
   - File: `packages/pipeline/src/ingest/dob.ts`
   - Endpoint: `ipu4-2q9a.json`
@@ -31,6 +32,7 @@
   - File: `packages/pipeline/src/ingest/pad.ts`
 
 #### API Enrichment (Real-time)
+
 - [x] **DOB NOW GlobalSearch API** - Real-time job lookup by job number
 - [x] **DOB NOW Property Details API** - Full property info by BIN
   - File: `packages/api/src/routes/places.ts` → `fetchPropertyDetails()`
@@ -39,6 +41,7 @@
 ### To Implement
 
 #### High Priority
+
 - [ ] **HPD Building Profile** - Housing violations, complaints, registrations
   - URL: `https://hpdonline.nyc.gov/HPDonline/Provide_address.aspx`
   - Requires: BIN or address
@@ -50,6 +53,7 @@
   - Why: Critical for understanding tenant displacement risk
 
 #### Medium Priority
+
 - [ ] **ACRIS** - Property records, deeds, mortgages
   - URL: `https://a836-acris.nyc.gov/DS/DocumentSearch/BBL`
   - Requires: BBL
@@ -63,6 +67,7 @@
   - Requires: Address or BBL
 
 #### Low Priority
+
 - [ ] **DOF Property Tax Bills** - Tax assessments, exemptions
   - URL: `https://a836-pts-access.nyc.gov/care/search/commonsearch.aspx?mode=persprop`
   - Requires: BBL
@@ -81,6 +86,7 @@
 ## Research
 
 ### NYCDB (NYC Housing Database)
+
 - [ ] **Explore NYCDB** - Consolidated NYC housing database
   - GitHub: https://github.com/nycdb/nycdb
   - Python ETL that loads 30+ housing datasets into PostgreSQL
@@ -94,16 +100,19 @@
 ## Infrastructure
 
 ### Deployment
+
 - [ ] Deploy to production (Turso + Vercel or Cloudflare)
 - [ ] Set up CI/CD pipeline
 
 ### Caching Strategy
+
 - [ ] **Cache layer** - Store fetched data locally
 - [ ] **Cache-first approach** - Never block on external APIs
 - [ ] **Background refresh** - Update stale data asynchronously
 - [ ] **Staleness thresholds** - Per-source (DOB: 24h, ACRIS: 7 days)
 
 ### Implementation
+
 - [ ] Add `cached_at` timestamp to external data
 - [ ] Add `source_data` table for raw API responses
 - [ ] Background worker for refresh

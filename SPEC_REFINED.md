@@ -28,10 +28,10 @@ Tout ce qui ne sert pas directement ces questions est secondaire.
 
 Grand public urbain:
 
-* habitants
-* futurs acheteurs ou locataires
-* curieux de leur environnement
-* personnes sensibles au cadre de vie
+- habitants
+- futurs acheteurs ou locataires
+- curieux de leur environnement
+- personnes sensibles au cadre de vie
 
 Ils ne connaissent pas les sigles.
 Ils ne veulent pas lire des documents officiels.
@@ -41,10 +41,10 @@ Ils veulent comprendre vite.
 
 Power users volontaires:
 
-* journalistes
-* chercheurs
-* urbanistes amateurs
-* investisseurs locaux
+- journalistes
+- chercheurs
+- urbanistes amateurs
+- investisseurs locaux
 
 Ils veulent creuser **après coup**, jamais en premier.
 
@@ -59,16 +59,16 @@ Ils peuvent utiliser le produit, mais **il n’est pas conçu pour eux**.
 
 ### Le produit montre:
 
-* des **lieux**
-* des **zones**
-* des **dynamiques**
-* des **trajectoires dans le temps**
+- des **lieux**
+- des **zones**
+- des **dynamiques**
+- des **trajectoires dans le temps**
 
 ### Le produit ne montre pas:
 
-* des listes de permis
-* des statuts administratifs bruts
-* des documents techniques en frontal
+- des listes de permis
+- des statuts administratifs bruts
+- des documents techniques en frontal
 
 Les permis, dossiers, PDFs sont des **preuves**, jamais le message principal.
 
@@ -80,22 +80,22 @@ Le produit **assume l’incertitude**.
 
 Il distingue visuellement:
 
-* ce qui est **en discussion**
-* ce qui est **probable**
-* ce qui est **quasi certain**
+- ce qui est **en discussion**
+- ce qui est **probable**
+- ce qui est **quasi certain**
 
 L’utilisateur doit sentir immédiatement:
 
-* “ça pourrait arriver”
-* “ça va très probablement arriver”
-* “ça est déjà en train d’arriver”
+- “ça pourrait arriver”
+- “ça va très probablement arriver”
+- “ça est déjà en train d’arriver”
 
 Le produit préfère:
 
-* montrer tôt
-* avec un niveau de certitude visible
+- montrer tôt
+- avec un niveau de certitude visible
   plutôt que
-* attendre d’être absolument sûr
+- attendre d’être absolument sûr
 
 ---
 
@@ -106,10 +106,10 @@ Il parle de **transformation d’un endroit**.
 
 Un même lieu peut:
 
-* changer lentement
-* être bruyant pendant des années
-* se densifier sans nouveau bâtiment
-* devenir plus public sans construction privée
+- changer lentement
+- être bruyant pendant des années
+- se densifier sans nouveau bâtiment
+- devenir plus public sans construction privée
 
 La question n’est jamais:
 
@@ -125,17 +125,17 @@ La question est:
 
 ### Par défaut
 
-* la carte montre des **points**
-* leur **taille** et **couleur** racontent l’impact
-* la densité visuelle raconte le niveau de friction ou de mutation
+- la carte montre des **points**
+- leur **taille** et **couleur** racontent l’impact
+- la densité visuelle raconte le niveau de friction ou de mutation
 
 ### En zones très denses
 
 Le produit:
 
-* évite la surcharge
-* agrège visuellement
-* force implicitement une lecture par zone
+- évite la surcharge
+- agrège visuellement
+- force implicitement une lecture par zone
 
 L’utilisateur ne doit jamais être noyé.
 
@@ -148,14 +148,14 @@ C’est un **outil narratif**.
 
 Le produit permet:
 
-* de comprendre comment un quartier a évolué
-* de voir ce qui se prépare
-* de projeter le futur
+- de comprendre comment un quartier a évolué
+- de voir ce qui se prépare
+- de projeter le futur
 
 Quand l’utilisateur regarde “2027” ou “2030”, il veut voir:
 
-* ce qui sera visible ou impactant à ce moment-là
-* pas juste des dossiers déposés cette année-là
+- ce qui sera visible ou impactant à ce moment-là
+- pas juste des dossiers déposés cette année-là
 
 ---
 
@@ -163,15 +163,15 @@ Quand l’utilisateur regarde “2027” ou “2030”, il veut voir:
 
 Le produit peut utiliser des statuts explicites:
 
-* en discussion
-* autorisé
-* en travaux
-* terminé
+- en discussion
+- autorisé
+- en travaux
+- terminé
 
 Mais:
 
-* ils ne sont pas toujours nécessaires
-* ils ne sont jamais le message principal
+- ils ne sont pas toujours nécessaires
+- ils ne sont jamais le message principal
 
 Deux lieux avec la même intensité peuvent avoir des causes différentes.
 Ce n’est pas un problème si **l’impact perçu est comparable**.
@@ -182,9 +182,9 @@ Ce n’est pas un problème si **l’impact perçu est comparable**.
 
 Après quelques minutes, l’utilisateur doit pouvoir dire:
 
-* “Je sais quels coins éviter l’an prochain.”
-* “Je vois le futur potentiel qui est en préparation.”
-* “Je comprends mieux pourquoi ce quartier change.”
+- “Je sais quels coins éviter l’an prochain.”
+- “Je vois le futur potentiel qui est en préparation.”
+- “Je comprends mieux pourquoi ce quartier change.”
 
 S’il ne peut pas dire ça, le produit échoue.
 
@@ -200,15 +200,15 @@ Les documents officiels ont trois rôles:
 
 Dans la pratique:
 
-* presque personne n’ouvrira les PDFs
-* les résumés doivent suffire
-* les liens vers les sites officiels doivent exister
+- presque personne n’ouvrira les PDFs
+- les résumés doivent suffire
+- les liens vers les sites officiels doivent exister
 
 Les résumés:
 
-* interprètent
-* simplifient fortement
-* assument une lecture humaine
+- interprètent
+- simplifient fortement
+- assument une lecture humaine
 
 La fidélité juridique n’est pas l’objectif.
 
@@ -220,9 +220,9 @@ Le produit couvre **toute la ville**.
 
 La valeur n’est pas seulement “près de chez moi”, mais:
 
-* comparer des quartiers
-* comprendre des dynamiques globales
-* voir où la pression se déplace
+- comparer des quartiers
+- comprendre des dynamiques globales
+- voir où la pression se déplace
 
 La lecture locale reste possible, mais elle n’est pas exclusive.
 
@@ -232,14 +232,14 @@ La lecture locale reste possible, mais elle n’est pas exclusive.
 
 Le produit doit offrir:
 
-* des filtres clairs
-* des niveaux d’intensité
-* une manière de calmer la carte
+- des filtres clairs
+- des niveaux d’intensité
+- une manière de calmer la carte
 
 En zones très denses:
 
-* la réduction du bruit est prioritaire
-* mieux vaut cacher que surcharger
+- la réduction du bruit est prioritaire
+- mieux vaut cacher que surcharger
 
 ---
 
@@ -247,9 +247,9 @@ En zones très denses:
 
 Le produit ne promet pas:
 
-* l’exactitude parfaite
-* l’exhaustivité administrative
-* la prédiction certaine
+- l’exactitude parfaite
+- l’exhaustivité administrative
+- la prédiction certaine
 
 Il promet:
 
