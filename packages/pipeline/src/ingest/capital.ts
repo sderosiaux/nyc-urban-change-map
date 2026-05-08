@@ -67,9 +67,7 @@ export function mapProjectCategory(typeCategory?: string): TransformationNature 
 /**
  * Normalize a capital project to our event format
  */
-export function normalizeCapitalProject(
-  project: CapitalProject
-): NormalizedCapitalEvent | null {
+export function normalizeCapitalProject(project: CapitalProject): NormalizedCapitalEvent | null {
   // Require at minimum maprojid
   if (!project.maprojid) {
     return null;
@@ -89,7 +87,7 @@ export function normalizeCapitalProject(
   // Parse coordinates from the_geom (GeoJSON MultiPoint)
   let latitude: number | null = null;
   let longitude: number | null = null;
-  if (project.the_geom && project.the_geom.coordinates && project.the_geom.coordinates.length > 0) {
+  if (project.the_geom?.coordinates && project.the_geom.coordinates.length > 0) {
     const firstPoint = project.the_geom.coordinates[0];
     if (firstPoint && firstPoint.length >= 2) {
       longitude = firstPoint[0] ?? null;
@@ -146,7 +144,7 @@ export async function fetchCapitalProjects(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
@@ -175,7 +173,7 @@ export async function fetchCapitalProjects(options: {
  */
 export async function fetchAllCapitalProjectsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedCapitalEvent[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -209,7 +207,7 @@ export async function fetchAllCapitalProjectsSince(
       offset += batchSize;
 
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

@@ -16,6 +16,7 @@ interface AggregationProperties {
   nature: TransformationNature;
   headline: string;
   id: string;
+  hasZap: boolean;
 }
 
 // Extended properties for cluster features (output format)
@@ -27,6 +28,7 @@ export interface ClusterProperties {
   avgIntensity: number;
   maxIntensity: number;
   dominantCertainty: Certainty;
+  hasZap: boolean;
 }
 
 export interface PointProperties {
@@ -36,6 +38,7 @@ export interface PointProperties {
   certainty: Certainty;
   nature: TransformationNature;
   headline: string;
+  hasZap: boolean;
 }
 
 export interface ClusterFeature {
@@ -60,31 +63,22 @@ export interface PointFeatureOutput {
 
 export type ClusterOrPoint = ClusterFeature | PointFeatureOutput;
 
-type SuperclusterIndex = Supercluster<
-  {
-    id: string;
-    intensity: number;
-    certainty: Certainty;
-    nature: TransformationNature;
-    headline: string;
-  },
-  AggregationProperties
->;
+interface PointInputProperties {
+  id: string;
+  intensity: number;
+  certainty: Certainty;
+  nature: TransformationNature;
+  headline: string;
+  hasZap: boolean;
+}
+
+type SuperclusterIndex = Supercluster<PointInputProperties, AggregationProperties>;
 
 /**
  * Create a Supercluster index from place features
  */
 export function createClusterIndex(features: PlaceFeature[]): SuperclusterIndex {
-  const index = new Supercluster<
-    {
-      id: string;
-      intensity: number;
-      certainty: Certainty;
-      nature: TransformationNature;
-      headline: string;
-    },
-    AggregationProperties
-  >({
+  const index = new Supercluster<PointInputProperties, AggregationProperties>({
     radius: 60, // Cluster radius in pixels
     maxZoom: 16, // Max zoom to cluster at
     minZoom: 0,
@@ -95,6 +89,7 @@ export function createClusterIndex(features: PlaceFeature[]): SuperclusterIndex 
       nature: props.nature,
       headline: props.headline,
       id: props.id,
+      hasZap: props.hasZap,
       // For aggregation
       sumIntensity: props.intensity,
       maxIntensity: props.intensity,
@@ -104,6 +99,8 @@ export function createClusterIndex(features: PlaceFeature[]): SuperclusterIndex 
       accumulated.sumIntensity += props.intensity;
       accumulated.maxIntensity = Math.max(accumulated.maxIntensity, props.intensity);
       accumulated.count += 1;
+      // Cluster is "ZAP" if any leaf is ZAP — surfaces upcoming projects at all zooms
+      accumulated.hasZap = accumulated.hasZap || props.hasZap;
     },
   });
 
@@ -117,6 +114,7 @@ export function createClusterIndex(features: PlaceFeature[]): SuperclusterIndex 
       certainty: f.properties.certainty,
       nature: f.properties.nature,
       headline: f.properties.headline,
+      hasZap: f.properties.hasZap === true,
     },
   }));
 
@@ -131,12 +129,12 @@ export function createClusterIndex(features: PlaceFeature[]): SuperclusterIndex 
 export function getClusters(
   index: SuperclusterIndex,
   bounds: [number, number, number, number], // [west, south, east, north]
-  zoom: number
+  zoom: number,
 ): ClusterOrPoint[] {
   const rawClusters = index.getClusters(bounds, Math.floor(zoom));
 
   return rawClusters.map((feature): ClusterOrPoint => {
-    const props = feature.properties as Record<string, unknown>;
+    const props = feature.properties as unknown as Record<string, unknown>;
 
     if (props['cluster']) {
       // It's a cluster
@@ -156,6 +154,7 @@ export function getClusters(
           avgIntensity,
           maxIntensity: (props['maxIntensity'] as number) || 0,
           dominantCertainty: 'probable' as Certainty, // Default for clusters
+          hasZap: props['hasZap'] === true,
         },
       };
     } else {
@@ -171,6 +170,7 @@ export function getClusters(
           certainty: props['certainty'] as Certainty,
           nature: props['nature'] as TransformationNature,
           headline: props['headline'] as string,
+          hasZap: props['hasZap'] === true,
         },
       };
     }
@@ -190,10 +190,7 @@ function abbreviateNumber(num: number): string {
 /**
  * Get expansion zoom for a cluster
  */
-export function getClusterExpansionZoom(
-  index: SuperclusterIndex,
-  clusterId: number
-): number {
+export function getClusterExpansionZoom(index: SuperclusterIndex, clusterId: number): number {
   return index.getClusterExpansionZoom(clusterId);
 }
 
@@ -203,8 +200,8 @@ export function getClusterExpansionZoom(
 export function getClusterLeaves(
   index: SuperclusterIndex,
   clusterId: number,
-  limit: number = 10,
-  offset: number = 0
+  limit = 10,
+  offset = 0,
 ): PointFeatureOutput[] {
   const leaves = index.getLeaves(clusterId, limit, offset);
 
@@ -219,6 +216,7 @@ export function getClusterLeaves(
       certainty: leaf.properties.certainty,
       nature: leaf.properties.nature,
       headline: leaf.properties.headline,
+      hasZap: leaf.properties.hasZap,
     },
   }));
 }

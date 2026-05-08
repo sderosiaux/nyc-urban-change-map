@@ -19,14 +19,14 @@ export default function TimeControl() {
     (mode: TimeMode) => {
       setTimeMode(mode);
     },
-    [setTimeMode]
+    [setTimeMode],
   );
 
   const handleYearChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSelectedYear(parseInt(e.target.value, 10));
     },
-    [setSelectedYear]
+    [setSelectedYear],
   );
 
   const currentYear = new Date().getFullYear();
@@ -40,7 +40,9 @@ export default function TimeControl() {
         {TIME_MODES.map((mode) => (
           <button
             key={mode.id}
-            onClick={() => handleModeChange(mode.id)}
+            onClick={() => {
+              handleModeChange(mode.id);
+            }}
             className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               timeMode === mode.id
                 ? 'bg-slate-900 text-white'
@@ -81,7 +83,6 @@ export default function TimeControl() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

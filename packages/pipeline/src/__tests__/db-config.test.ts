@@ -8,12 +8,12 @@ describe('SQLite pragma configuration', () => {
   // These tests verify the pragma values we set in db/index.ts
 
   const EXPECTED_PRAGMAS = {
-    'journal_mode': 'WAL',
-    'foreign_keys': 'ON',
-    'mmap_size': 1073741824,      // 1GB memory-mapped I/O
-    'cache_size': -262144,         // 256MB page cache (negative = KB)
-    'temp_store': 'MEMORY',
-    'synchronous': 'NORMAL',
+    journal_mode: 'WAL',
+    foreign_keys: 'ON',
+    mmap_size: 1073741824, // 1GB memory-mapped I/O
+    cache_size: -262144, // 256MB page cache (negative = KB)
+    temp_store: 'MEMORY',
+    synchronous: 'NORMAL',
   };
 
   it('should configure WAL journal mode for better concurrency', () => {
@@ -21,20 +21,20 @@ describe('SQLite pragma configuration', () => {
     // - Better concurrency (readers don't block writers)
     // - Faster writes in most cases
     // - Atomic commits without locking the entire database
-    expect(EXPECTED_PRAGMAS['journal_mode']).toBe('WAL');
+    expect(EXPECTED_PRAGMAS.journal_mode).toBe('WAL');
   });
 
   it('should enable foreign keys for data integrity', () => {
     // Foreign keys are disabled by default in SQLite
     // We enable them to ensure referential integrity
-    expect(EXPECTED_PRAGMAS['foreign_keys']).toBe('ON');
+    expect(EXPECTED_PRAGMAS.foreign_keys).toBe('ON');
   });
 
   it('should set 1GB memory-mapped I/O for large database', () => {
     // mmap_size allows SQLite to use memory-mapped I/O
     // For our 4GB+ database, 1GB mmap significantly improves read performance
     const ONE_GB = 1024 * 1024 * 1024;
-    expect(EXPECTED_PRAGMAS['mmap_size']).toBe(ONE_GB);
+    expect(EXPECTED_PRAGMAS.mmap_size).toBe(ONE_GB);
   });
 
   it('should set 256MB page cache', () => {
@@ -43,19 +43,19 @@ describe('SQLite pragma configuration', () => {
     const CACHE_SIZE_KB = -262144;
     const CACHE_SIZE_MB = Math.abs(CACHE_SIZE_KB) / 1024;
     expect(CACHE_SIZE_MB).toBe(256);
-    expect(EXPECTED_PRAGMAS['cache_size']).toBe(CACHE_SIZE_KB);
+    expect(EXPECTED_PRAGMAS.cache_size).toBe(CACHE_SIZE_KB);
   });
 
   it('should keep temp tables in memory', () => {
     // MEMORY = temp tables and indexes in RAM
     // Faster than disk, fine for our use case
-    expect(EXPECTED_PRAGMAS['temp_store']).toBe('MEMORY');
+    expect(EXPECTED_PRAGMAS.temp_store).toBe('MEMORY');
   });
 
   it('should use NORMAL synchronous mode with WAL', () => {
     // NORMAL is safe with WAL mode and faster than FULL
     // FULL would sync every transaction, NORMAL syncs at critical moments
-    expect(EXPECTED_PRAGMAS['synchronous']).toBe('NORMAL');
+    expect(EXPECTED_PRAGMAS.synchronous).toBe('NORMAL');
   });
 });
 
@@ -90,13 +90,13 @@ describe('Performance optimization rationale', () => {
 
 describe('Cache header configuration', () => {
   const PLACES_CACHE = {
-    maxAge: 60,                    // 1 minute
-    staleWhileRevalidate: 300,     // 5 minutes
+    maxAge: 60, // 1 minute
+    staleWhileRevalidate: 300, // 5 minutes
   };
 
   const HEATMAP_CACHE = {
-    maxAge: 300,                   // 5 minutes
-    staleWhileRevalidate: 600,     // 10 minutes
+    maxAge: 300, // 5 minutes
+    staleWhileRevalidate: 600, // 10 minutes
   };
 
   it('should cache places for 1 minute', () => {

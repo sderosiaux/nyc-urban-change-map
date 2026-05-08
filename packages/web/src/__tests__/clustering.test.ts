@@ -7,12 +7,7 @@ import { createClusterIndex, getClusters, type ClusterFeature } from '../utils/c
 import type { PlaceFeature } from '@ucm/shared';
 
 // Helper to create mock place features
-function createPlaceFeature(
-  id: string,
-  lng: number,
-  lat: number,
-  intensity: number = 50
-): PlaceFeature {
+function createPlaceFeature(id: string, lng: number, lat: number, intensity = 50): PlaceFeature {
   return {
     type: 'Feature',
     id,
@@ -65,9 +60,7 @@ describe('getClusters', () => {
     expect(clusters.length).toBeLessThan(features.length);
 
     // Should have at least one cluster
-    const clusterFeature = clusters.find(
-      (f) => f.properties.cluster === true
-    ) as ClusterFeature | undefined;
+    const clusterFeature = clusters.find((f) => f.properties.cluster) as ClusterFeature | undefined;
     expect(clusterFeature).toBeDefined();
     expect(clusterFeature!.properties.point_count).toBe(3);
   });

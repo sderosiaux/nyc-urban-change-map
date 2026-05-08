@@ -18,13 +18,13 @@ function parseUrlHash(): { viewport?: Partial<Viewport>; placeId?: string } {
   if (typeof window === 'undefined') return {};
 
   const hash = window.location.hash;
-  if (!hash || !hash.startsWith('#@')) return {};
+  if (!hash?.startsWith('#@')) return {};
 
   const result: { viewport?: Partial<Viewport>; placeId?: string } = {};
 
   // Format: #@lat,lng,zoom or #@lat,lng,zoom/place/id
-  const match = hash.match(/^#@(-?[\d.]+),(-?[\d.]+),([\d.]+)(?:\/place\/(.+))?$/);
-  if (match && match[1] && match[2] && match[3]) {
+  const match = /^#@(-?[\d.]+),(-?[\d.]+),([\d.]+)(?:\/place\/(.+))?$/.exec(hash);
+  if (match?.[1] && match[2] && match[3]) {
     result.viewport = {
       latitude: parseFloat(match[1]),
       longitude: parseFloat(match[2]),
@@ -120,20 +120,29 @@ export const useViewStore = create<ViewStore>((set, get) => ({
   detailPanelOpen: initialState.detailPanelOpen,
 
   // Actions
-  setViewport: (viewport) =>
+  setViewport: (viewport) => {
     set((state) => {
       const newViewport = { ...state.viewport, ...viewport };
       debouncedUrlUpdate(newViewport, state.selectedPlaceId);
       return { viewport: newViewport };
-    }),
+    });
+  },
 
-  setBounds: (bounds) => set({ bounds }),
+  setBounds: (bounds) => {
+    set({ bounds });
+  },
 
-  setTimeMode: (timeMode) => set({ timeMode }),
+  setTimeMode: (timeMode) => {
+    set({ timeMode });
+  },
 
-  setSelectedYear: (selectedYear) => set({ selectedYear }),
+  setSelectedYear: (selectedYear) => {
+    set({ selectedYear });
+  },
 
-  setMinIntensity: (minIntensity) => set({ minIntensity }),
+  setMinIntensity: (minIntensity) => {
+    set({ minIntensity });
+  },
 
   selectPlace: (id) => {
     const state = get();
@@ -144,9 +153,13 @@ export const useViewStore = create<ViewStore>((set, get) => ({
     });
   },
 
-  hoverPlace: (id) => set({ hoveredPlaceId: id }),
+  hoverPlace: (id) => {
+    set({ hoveredPlaceId: id });
+  },
 
-  openDetailPanel: () => set({ detailPanelOpen: true }),
+  openDetailPanel: () => {
+    set({ detailPanelOpen: true });
+  },
 
   closeDetailPanel: () => {
     const state = get();

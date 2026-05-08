@@ -71,22 +71,23 @@ export default function Tooltip({ content, children, position = 'top' }: Tooltip
     <span
       ref={triggerRef}
       className="inline-flex"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
+      onMouseEnter={() => {
+        setVisible(true);
+      }}
+      onMouseLeave={() => {
+        setVisible(false);
+      }}
     >
       {children}
-      {visible && createPortal(
-        <div
-          ref={tooltipRef}
-          className="fixed z-[9999] pointer-events-none"
-          style={style}
-        >
-          <div className="bg-slate-900 text-white text-xs rounded px-2 py-1.5 shadow-lg whitespace-nowrap">
-            {content}
-          </div>
-        </div>,
-        document.body
-      )}
+      {visible &&
+        createPortal(
+          <div ref={tooltipRef} className="fixed z-[9999] pointer-events-none" style={style}>
+            <div className="bg-slate-900 text-white text-xs rounded px-2 py-1.5 shadow-lg whitespace-nowrap">
+              {content}
+            </div>
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }

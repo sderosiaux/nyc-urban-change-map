@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Drizzle artifacts (postgres config is stale; runtime uses SQLite)
+packages/pipeline/drizzle/
+
 # Data files (too large for git)
 data/
 *.db

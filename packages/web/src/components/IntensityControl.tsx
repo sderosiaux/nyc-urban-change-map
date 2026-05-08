@@ -19,14 +19,14 @@ export default function IntensityControl() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setMinIntensity(parseInt(e.target.value, 10));
     },
-    [setMinIntensity]
+    [setMinIntensity],
   );
 
   const handlePresetClick = useCallback(
     (value: number) => {
       setMinIntensity(value);
     },
-    [setMinIntensity]
+    [setMinIntensity],
   );
 
   // Find the active preset (or closest)
@@ -41,7 +41,9 @@ export default function IntensityControl() {
         {INTENSITY_PRESETS.map((preset) => (
           <button
             key={preset.value}
-            onClick={() => handlePresetClick(preset.value)}
+            onClick={() => {
+              handlePresetClick(preset.value);
+            }}
             className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${
               minIntensity === preset.value
                 ? 'bg-slate-900 text-white'

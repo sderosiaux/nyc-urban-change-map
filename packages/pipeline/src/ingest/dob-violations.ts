@@ -86,7 +86,7 @@ export async function fetchDOBViolations(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
@@ -98,7 +98,9 @@ export async function fetchDOBViolations(options: {
   try {
     // Add timeout to prevent hanging on slow responses
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 120000); // 2 min timeout
 
     const response = await fetch(url, {
       headers,
@@ -132,10 +134,10 @@ function mapBorough(code: string): string | null {
     '3': 'Brooklyn',
     '4': 'Queens',
     '5': 'Staten Island',
-    'MANHATTAN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'QUEENS': 'Queens',
+    MANHATTAN: 'Manhattan',
+    BRONX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
   };
   return mapping[code?.toUpperCase()] || null;
@@ -176,14 +178,16 @@ export function normalizeViolation(violation: DOBViolation): NormalizedViolation
   }
 
   // Build address
-  const address = violation.house_number && violation.street
-    ? `${violation.house_number} ${violation.street}`.trim()
-    : null;
+  const address =
+    violation.house_number && violation.street
+      ? `${violation.house_number} ${violation.street}`.trim()
+      : null;
 
   // Build BBL from block/lot
-  const bbl = violation.boro && violation.block && violation.lot
-    ? `${violation.boro}${violation.block.padStart(5, '0')}${violation.lot.padStart(4, '0')}`
-    : null;
+  const bbl =
+    violation.boro && violation.block && violation.lot
+      ? `${violation.boro}${violation.block.padStart(5, '0')}${violation.lot.padStart(4, '0')}`
+      : null;
 
   // Parse coordinates
   const latitude = violation.latitude ? parseFloat(violation.latitude) : null;
@@ -214,7 +218,7 @@ export function normalizeViolation(violation: DOBViolation): NormalizedViolation
  */
 export async function fetchAllViolationsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedViolation[]> {
   const { appToken, onProgress } = options;
   const batchSize = 5000; // Smaller batches to avoid connection issues
@@ -245,7 +249,7 @@ export async function fetchAllViolationsSince(
     } else {
       offset += batchSize;
       // Longer delay to avoid rate limiting and connection issues
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 

@@ -24,7 +24,9 @@ export default function SearchBar() {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,18 +52,15 @@ export default function SearchBar() {
       setQuery('');
       setIsOpen(false);
     },
-    [setViewport, selectPlace]
+    [setViewport, selectPlace],
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-        inputRef.current?.blur();
-      }
-    },
-    []
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsOpen(false);
+      inputRef.current?.blur();
+    }
+  }, []);
 
   const results = searchData?.results ?? [];
 
@@ -107,7 +106,9 @@ export default function SearchBar() {
           {results.map((result) => (
             <button
               key={result.id}
-              onClick={() => handleResultClick(result)}
+              onClick={() => {
+                handleResultClick(result);
+              }}
               className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition-colors"
             >
               <div className="flex items-start gap-3">

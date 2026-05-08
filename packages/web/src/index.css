@@ -9,7 +9,9 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
 }
@@ -20,12 +22,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Mapbox overrides */
-.mapboxgl-ctrl-logo {
-  display: none !important;
-}
-
-.mapboxgl-ctrl-attrib {
+/* MapLibre overrides */
+.maplibregl-ctrl-attrib {
   font-size: 10px;
 }
 

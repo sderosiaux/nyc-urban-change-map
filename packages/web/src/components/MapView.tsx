@@ -1,152 +1,183 @@
 /**
- * MapView - Main map component with Mapbox GL
+ * MapView - Main map component with MapLibre GL + OpenFreeMap tiles
  * Supports heatmap (low zoom), clusters (medium zoom), and points (high zoom)
  */
 
 import { useCallback, useRef, useMemo } from 'react';
-import Map, {
-  Source,
-  Layer,
-  NavigationControl,
-  type MapRef,
-  type ViewStateChangeEvent,
-} from 'react-map-gl';
-import type { MapLayerMouseEvent, CirclePaint, FillPaint, SymbolLayout, SymbolPaint } from 'mapbox-gl';
+import { Map, Source, Layer, NavigationControl } from 'react-map-gl/maplibre';
+import type {
+  MapRef,
+  ViewStateChangeEvent,
+  MapLayerMouseEvent,
+  LayerProps,
+} from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useViewStore } from '../stores/viewStore';
 import { useMapPlaces, useHeatmap } from '../hooks/useMapData';
 import { createClusterIndex, getClusters, getClusterExpansionZoom } from '../utils/clustering';
 import type { HeatmapCell } from '@ucm/shared';
 
-// Mapbox access token - should be in env
-const MAPBOX_TOKEN =
-  import.meta.env.VITE_MAPBOX_TOKEN ||
-  'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
-
-// Map style
-const MAP_STYLE = 'mapbox://styles/mapbox/light-v11';
+// OpenFreeMap positron style (light theme, OSM-based vector tiles, no token)
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 // Zoom thresholds
 const HEATMAP_MAX_ZOOM = 12;
 const CLUSTER_MAX_ZOOM = 16;
 
-// Layer paint configurations
-const POINT_LAYER_PAINT: CirclePaint = {
-  'circle-radius': [
-    'case',
-    // ZAP projects: large fixed size - these are important upcoming projects
-    ['==', ['get', 'hasZap'], true],
-    16,
-    // Other points scale with intensity
-    ['interpolate', ['linear'], ['get', 'intensity'],
-      0, 6,
-      50, 12,
-      100, 22,
+// Fonts shipped by OpenFreeMap positron glyphs
+const FONT_BOLD = ['Noto Sans Bold'];
+const FONT_REGULAR = ['Noto Sans Regular'];
+
+const POINT_LAYER: LayerProps = {
+  id: 'places-layer',
+  type: 'circle',
+  paint: {
+    'circle-radius': [
+      'case',
+      ['==', ['get', 'hasZap'], true],
+      16,
+      ['interpolate', ['linear'], ['get', 'intensity'], 0, 6, 50, 12, 100, 22],
     ],
-  ],
-  'circle-color': [
-    'case',
-    // ZAP projects: blue background
-    ['==', ['get', 'hasZap'], true],
-    '#3b82f6', // blue-500
-    // Other points scale with intensity
-    ['interpolate', ['linear'], ['get', 'intensity'],
-      0, '#94a3b8', // slate-400
-      30, '#fbbf24', // amber-400
-      60, '#f97316', // orange-500
-      80, '#dc2626', // red-600
+    'circle-color': [
+      'case',
+      ['==', ['get', 'hasZap'], true],
+      '#3b82f6',
+      [
+        'interpolate',
+        ['linear'],
+        ['get', 'intensity'],
+        0,
+        '#94a3b8',
+        30,
+        '#fbbf24',
+        60,
+        '#f97316',
+        80,
+        '#dc2626',
+      ],
     ],
-  ],
-  'circle-opacity': [
-    'match',
-    ['get', 'certainty'],
-    'discussion', 0.9,
-    'probable', 0.85,
-    'certain', 1.0,
-    0.7,
-  ],
-  'circle-stroke-width': 2,
-  'circle-stroke-color': '#fff',
+    'circle-opacity': [
+      'match',
+      ['get', 'certainty'],
+      'discussion',
+      0.9,
+      'probable',
+      0.85,
+      'certain',
+      1.0,
+      0.7,
+    ],
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#fff',
+  },
 };
 
-// ZAP project indicator label (shows "?" for ZAP/upcoming projects)
-const ZAP_LABEL_LAYOUT: SymbolLayout = {
-  'text-field': '?',
-  'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-  'text-size': 14,
-  'text-anchor': 'center',
-  'text-allow-overlap': true,
-  'icon-allow-overlap': true,
+const UNCLUSTERED_POINT_LAYER: LayerProps = {
+  ...POINT_LAYER,
+  id: 'unclustered-point',
+  filter: ['!', ['has', 'point_count']],
 };
 
-const ZAP_LABEL_PAINT: SymbolPaint = {
-  'text-color': '#ffffff',
-  'text-halo-color': 'rgba(0,0,0,0.3)',
-  'text-halo-width': 0.5,
+const ZAP_LABEL_LAYER: LayerProps = {
+  id: 'zap-label',
+  type: 'symbol',
+  filter: ['==', ['get', 'hasZap'], true],
+  layout: {
+    'text-field': '?',
+    'text-font': FONT_BOLD,
+    'text-size': 14,
+    'text-anchor': 'center',
+    'text-allow-overlap': true,
+    'icon-allow-overlap': true,
+  },
+  paint: {
+    'text-color': '#ffffff',
+    'text-halo-color': 'rgba(0,0,0,0.3)',
+    'text-halo-width': 0.5,
+  },
 };
 
-// Cluster circle paint
-const CLUSTER_LAYER_PAINT: CirclePaint = {
-  'circle-radius': [
-    'interpolate',
-    ['linear'],
-    ['get', 'point_count'],
-    2, 15,
-    10, 25,
-    100, 40,
-  ],
-  'circle-color': [
-    'interpolate',
-    ['linear'],
-    ['get', 'avgIntensity'],
-    0, '#94a3b8',
-    30, '#fbbf24',
-    60, '#f97316',
-    80, '#dc2626',
-  ],
-  'circle-opacity': 0.8,
-  'circle-stroke-width': 2,
-  'circle-stroke-color': '#fff',
+const UNCLUSTERED_ZAP_LABEL_LAYER: LayerProps = {
+  ...ZAP_LABEL_LAYER,
+  id: 'unclustered-zap-label',
+  filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'hasZap'], true]],
 };
 
-// Cluster count label
-const CLUSTER_COUNT_LAYOUT: SymbolLayout = {
-  'text-field': '{point_count_abbreviated}',
-  'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-  'text-size': 12,
-  'text-anchor': 'center',
-  'text-allow-overlap': true,
-  'icon-allow-overlap': true,
+const CLUSTER_LAYER: LayerProps = {
+  id: 'clusters-layer',
+  type: 'circle',
+  filter: ['has', 'point_count'],
+  paint: {
+    'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 15, 10, 25, 100, 40],
+    'circle-color': [
+      'interpolate',
+      ['linear'],
+      ['get', 'avgIntensity'],
+      0,
+      '#94a3b8',
+      30,
+      '#fbbf24',
+      60,
+      '#f97316',
+      80,
+      '#dc2626',
+    ],
+    'circle-opacity': 0.8,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#fff',
+  },
 };
 
-const CLUSTER_COUNT_PAINT: SymbolPaint = {
-  'text-color': '#ffffff',
+const CLUSTER_COUNT_LAYER: LayerProps = {
+  id: 'cluster-count',
+  type: 'symbol',
+  filter: ['has', 'point_count'],
+  layout: {
+    'text-field': '{point_count_abbreviated}',
+    'text-font': FONT_REGULAR,
+    'text-size': 12,
+    'text-anchor': 'center',
+    'text-allow-overlap': true,
+    'icon-allow-overlap': true,
+  },
+  paint: {
+    'text-color': '#ffffff',
+  },
 };
 
-// Heatmap fill paint
-const HEATMAP_FILL_PAINT: FillPaint = {
-  'fill-color': [
-    'interpolate',
-    ['linear'],
-    ['get', 'avgIntensity'],
-    0, 'rgba(148, 163, 184, 0.3)', // slate-400 transparent
-    30, 'rgba(251, 191, 36, 0.4)', // amber-400
-    60, 'rgba(249, 115, 22, 0.5)', // orange-500
-    80, 'rgba(220, 38, 38, 0.6)', // red-600
-  ],
-  'fill-outline-color': [
-    'interpolate',
-    ['linear'],
-    ['get', 'avgIntensity'],
-    0, 'rgba(148, 163, 184, 0.5)',
-    30, 'rgba(251, 191, 36, 0.6)',
-    60, 'rgba(249, 115, 22, 0.7)',
-    80, 'rgba(220, 38, 38, 0.8)',
-  ],
+const HEATMAP_LAYER: LayerProps = {
+  id: 'heatmap-layer',
+  type: 'fill',
+  paint: {
+    'fill-color': [
+      'interpolate',
+      ['linear'],
+      ['get', 'avgIntensity'],
+      0,
+      'rgba(148, 163, 184, 0.3)',
+      30,
+      'rgba(251, 191, 36, 0.4)',
+      60,
+      'rgba(249, 115, 22, 0.5)',
+      80,
+      'rgba(220, 38, 38, 0.6)',
+    ],
+    'fill-outline-color': [
+      'interpolate',
+      ['linear'],
+      ['get', 'avgIntensity'],
+      0,
+      'rgba(148, 163, 184, 0.5)',
+      30,
+      'rgba(251, 191, 36, 0.6)',
+      60,
+      'rgba(249, 115, 22, 0.7)',
+      80,
+      'rgba(220, 38, 38, 0.8)',
+    ],
+  },
 };
 
-/**
- * Convert H3 cells to GeoJSON FeatureCollection
- */
 function heatmapToGeoJSON(cells: HeatmapCell[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -155,7 +186,7 @@ function heatmapToGeoJSON(cells: HeatmapCell[]): GeoJSON.FeatureCollection {
       id: cell.h3Index,
       geometry: {
         type: 'Polygon' as const,
-        coordinates: [[...cell.boundary, cell.boundary[0]!]], // Close the polygon
+        coordinates: [[...cell.boundary, cell.boundary[0]!]],
       },
       properties: {
         h3Index: cell.h3Index,
@@ -180,13 +211,11 @@ export default function MapView() {
   const showClusters = zoom >= HEATMAP_MAX_ZOOM && zoom < CLUSTER_MAX_ZOOM;
   const showPoints = zoom >= CLUSTER_MAX_ZOOM;
 
-  // Create cluster index when places data changes
   const clusterIndex = useMemo(() => {
     if (!placesData?.features) return null;
     return createClusterIndex(placesData.features);
   }, [placesData?.features]);
 
-  // Get clusters for current viewport
   const clusteredData = useMemo(() => {
     if (!clusterIndex || !bounds || !showClusters) {
       return { type: 'FeatureCollection' as const, features: [] };
@@ -207,7 +236,6 @@ export default function MapView() {
     };
   }, [clusterIndex, bounds, zoom, showClusters]);
 
-  // Convert heatmap data to GeoJSON
   const heatmapGeoJSON = useMemo(() => {
     if (!heatmapData?.cells || !showHeatmap) {
       return { type: 'FeatureCollection' as const, features: [] };
@@ -215,7 +243,6 @@ export default function MapView() {
     return heatmapToGeoJSON(heatmapData.cells);
   }, [heatmapData?.cells, showHeatmap]);
 
-  // Point data for high zoom
   const pointsData = useMemo(() => {
     if (!placesData || !showPoints) {
       return { type: 'FeatureCollection' as const, features: [] };
@@ -223,7 +250,6 @@ export default function MapView() {
     return placesData;
   }, [placesData, showPoints]);
 
-  // Handle viewport changes and update bounds in sync
   const handleMove = useCallback(
     (evt: ViewStateChangeEvent) => {
       setViewport({
@@ -232,7 +258,6 @@ export default function MapView() {
         zoom: evt.viewState.zoom,
       });
 
-      // Update bounds during move to keep clusters in sync with zoom
       const map = mapRef.current?.getMap();
       if (map) {
         const mapBounds = map.getBounds();
@@ -244,10 +269,9 @@ export default function MapView() {
         }
       }
     },
-    [setViewport, setBounds]
+    [setViewport, setBounds],
   );
 
-  // Also update bounds when map loads or stops moving
   const handleMoveEnd = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
@@ -261,13 +285,11 @@ export default function MapView() {
     }
   }, [setBounds]);
 
-  // Handle click on a place or cluster
   const handleClick = useCallback(
     (evt: MapLayerMouseEvent) => {
       const feature = evt.features?.[0];
-      if (!feature || !feature.properties) return;
+      if (!feature?.properties) return;
 
-      // Check if it's a cluster
       if (feature.properties['cluster'] && clusterIndex) {
         const clusterId = feature.properties['cluster_id'] as number;
         const expansionZoom = getClusterExpansionZoom(clusterIndex, clusterId);
@@ -281,16 +303,14 @@ export default function MapView() {
         return;
       }
 
-      // It's a point - select it
       const id = feature.properties['id'] ?? feature.id;
       if (id) {
         selectPlace(id as string);
       }
     },
-    [selectPlace, clusterIndex]
+    [selectPlace, clusterIndex],
   );
 
-  // Interactive layer IDs based on current view mode
   const interactiveLayerIds = useMemo(() => {
     const ids: string[] = [];
     if (showHeatmap) ids.push('heatmap-layer');
@@ -308,80 +328,31 @@ export default function MapView() {
       onLoad={handleMoveEnd}
       onClick={handleClick}
       mapStyle={MAP_STYLE}
-      mapboxAccessToken={MAPBOX_TOKEN}
       interactiveLayerIds={interactiveLayerIds}
       style={{ width: '100%', height: '100%' }}
       cursor="pointer"
     >
-      {/* Navigation controls */}
       <NavigationControl position="top-right" />
 
-      {/* Heatmap layer (low zoom) */}
       {showHeatmap && (
         <Source id="heatmap" type="geojson" data={heatmapGeoJSON}>
-          <Layer
-            id="heatmap-layer"
-            type="fill"
-            paint={HEATMAP_FILL_PAINT}
-          />
+          <Layer {...HEATMAP_LAYER} />
         </Source>
       )}
 
-      {/* Clustered layer (medium zoom) */}
       {showClusters && (
         <Source id="clusters" type="geojson" data={clusteredData} tolerance={0}>
-          {/* Cluster circles */}
-          <Layer
-            id="clusters-layer"
-            type="circle"
-            filter={['has', 'point_count']}
-            paint={CLUSTER_LAYER_PAINT}
-          />
-          {/* Cluster count labels */}
-          <Layer
-            id="cluster-count"
-            type="symbol"
-            filter={['has', 'point_count']}
-            layout={CLUSTER_COUNT_LAYOUT}
-            paint={CLUSTER_COUNT_PAINT}
-          />
-          {/* Unclustered points */}
-          <Layer
-            id="unclustered-point"
-            type="circle"
-            filter={['!', ['has', 'point_count']]}
-            paint={POINT_LAYER_PAINT}
-          />
-          {/* ZAP indicator for unclustered points */}
-          <Layer
-            id="unclustered-zap-label"
-            type="symbol"
-            filter={['all',
-              ['!', ['has', 'point_count']],
-              ['==', ['get', 'hasZap'], true]
-            ]}
-            layout={ZAP_LABEL_LAYOUT}
-            paint={ZAP_LABEL_PAINT}
-          />
+          <Layer {...CLUSTER_LAYER} />
+          <Layer {...CLUSTER_COUNT_LAYER} />
+          <Layer {...UNCLUSTERED_POINT_LAYER} />
+          <Layer {...UNCLUSTERED_ZAP_LABEL_LAYER} />
         </Source>
       )}
 
-      {/* Individual places layer (high zoom) */}
       {showPoints && (
         <Source id="places" type="geojson" data={pointsData}>
-          <Layer
-            id="places-layer"
-            type="circle"
-            paint={POINT_LAYER_PAINT}
-          />
-          {/* ZAP indicator - shows "?" on ZAP projects */}
-          <Layer
-            id="zap-label"
-            type="symbol"
-            filter={['==', ['get', 'hasZap'], true]}
-            layout={ZAP_LABEL_LAYOUT}
-            paint={ZAP_LABEL_PAINT}
-          />
+          <Layer {...POINT_LAYER} />
+          <Layer {...ZAP_LABEL_LAYER} />
         </Source>
       )}
     </Map>

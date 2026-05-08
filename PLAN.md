@@ -8,16 +8,17 @@
 
 Ces principes guident TOUTES les décisions:
 
-| Principe | Implication |
-|----------|-------------|
+| Principe                        | Implication                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------ |
 | **Transformation, pas projets** | L'entité principale est "ce que devient un lieu", pas un dossier administratif |
-| **Grand public, pas experts** | Zéro acronyme en UI. Compréhension en 5 minutes |
-| **Incertitude assumée** | Visuel différent pour "en discussion" vs "probable" vs "certain" |
-| **Temps = narration** | Le slider montre "quand tu le sentiras", pas "quand c'est déposé" |
-| **Jamais submerger** | Agrégation forcée en zone dense. Cacher > surcharger |
-| **NYC entière** | La valeur = comparer quartiers, voir dynamiques globales |
+| **Grand public, pas experts**   | Zéro acronyme en UI. Compréhension en 5 minutes                                |
+| **Incertitude assumée**         | Visuel différent pour "en discussion" vs "probable" vs "certain"               |
+| **Temps = narration**           | Le slider montre "quand tu le sentiras", pas "quand c'est déposé"              |
+| **Jamais submerger**            | Agrégation forcée en zone dense. Cacher > surcharger                           |
+| **NYC entière**                 | La valeur = comparer quartiers, voir dynamiques globales                       |
 
 **Test de succès (5 minutes):**
+
 > L'utilisateur peut dire: "Je sais quels coins éviter l'an prochain"
 
 ---
@@ -43,15 +44,15 @@ nyc-urban-change-map/
 
 ### 1.2 Stack technique
 
-| Couche | Technologie | Justification |
-|--------|-------------|---------------|
-| Base de données | PostgreSQL + PostGIS | Requêtes spatiales, H3 extension |
-| Backend | Node.js + Fastify | Rapide, TypeScript natif |
-| ORM | Drizzle | Type-safe, migrations |
-| Frontend | React + Vite | Dev rapide |
-| Carte | Mapbox GL JS | Vector tiles, expressions dynamiques |
-| State | Zustand + TanStack Query | Simple, cache intelligent |
-| Styling | Tailwind CSS | Design system ready |
+| Couche          | Technologie                             | Justification                        |
+| --------------- | --------------------------------------- | ------------------------------------ |
+| Base de données | PostgreSQL + PostGIS                    | Requêtes spatiales, H3 extension     |
+| Backend         | Node.js + Fastify                       | Rapide, TypeScript natif             |
+| ORM             | Drizzle                                 | Type-safe, migrations                |
+| Frontend        | React + Vite                            | Dev rapide                           |
+| Carte           | MapLibre GL JS + OpenFreeMap (positron) | Vector tiles open-source, sans token |
+| State           | Zustand + TanStack Query                | Simple, cache intelligent            |
+| Styling         | Tailwind CSS                            | Design system ready                  |
 
 ---
 
@@ -186,7 +187,7 @@ interface TransformationInput {
 }
 
 interface TransformationState {
-  intensity: number;           // 0-100
+  intensity: number; // 0-100
   nature: Nature;
   certainty: Certainty;
   headline: string;
@@ -231,27 +232,27 @@ function computeTransformationState(input: TransformationInput): TransformationS
 ```typescript
 const INTENSITY_WEIGHTS: Record<string, number> = {
   // Travaux mineurs
-  'scaffold': 3,
-  'equipment_work': 3,
-  'plumbing': 5,
-  'mechanical': 5,
+  scaffold: 3,
+  equipment_work: 3,
+  plumbing: 5,
+  mechanical: 5,
 
   // Altérations
-  'minor_alteration': 10,    // A2
-  'major_alteration': 30,    // A1
+  minor_alteration: 10, // A2
+  major_alteration: 30, // A1
 
   // Transformations majeures
-  'demolition': 35,
-  'new_building': 50,
+  demolition: 35,
+  new_building: 50,
 
   // Planification
-  'zap_filed': 8,
-  'zap_approved': 20,
-  'ulurp_filed': 10,
-  'ulurp_approved': 25,
+  zap_filed: 8,
+  zap_approved: 20,
+  ulurp_filed: 10,
+  ulurp_approved: 25,
 
   // Projets publics
-  'capital_project': 25,
+  capital_project: 25,
 };
 
 function computeIntensity(events: RawEvent[]): number {
@@ -263,7 +264,7 @@ function computeIntensity(events: RawEvent[]): number {
 
     // Éviter le double comptage du même type (sauf A2 répétés)
     if (event.event_type === 'minor_alteration') {
-      score += weight;  // Cumulatif
+      score += weight; // Cumulatif
     } else if (!seen.has(event.event_type)) {
       score += weight;
       seen.add(event.event_type);
@@ -282,22 +283,21 @@ type Certainty = 'discussion' | 'probable' | 'certain';
 function deriveCertainty(events: RawEvent[]): Certainty {
   // Hiérarchie: certain > probable > discussion
 
-  const hasActive = events.some(e =>
-    e.event_type === 'construction_started' ||
-    e.event_type === 'demolition_in_progress'
+  const hasActive = events.some(
+    (e) => e.event_type === 'construction_started' || e.event_type === 'demolition_in_progress',
   );
   if (hasActive) return 'certain';
 
-  const hasApproved = events.some(e =>
-    e.event_type === 'permit_issued' ||
-    e.event_type === 'zap_approved' ||
-    e.event_type === 'ulurp_approved'
+  const hasApproved = events.some(
+    (e) =>
+      e.event_type === 'permit_issued' ||
+      e.event_type === 'zap_approved' ||
+      e.event_type === 'ulurp_approved',
   );
   if (hasApproved) return 'probable';
 
-  const hasFiled = events.some(e =>
-    e.event_type.includes('filed') ||
-    e.event_type === 'eis_submitted'
+  const hasFiled = events.some(
+    (e) => e.event_type.includes('filed') || e.event_type === 'eis_submitted',
   );
   if (hasFiled) return 'discussion';
 
@@ -370,20 +370,21 @@ function generateNarratives(context: NarrativeContext): Narratives {
   // Headline (5-10 mots)
   let headline: string;
   if (newBuildings > 0) {
-    headline = newBuildings === 1
-      ? "Nouvel immeuble en préparation"
-      : `${newBuildings} nouveaux immeubles en préparation`;
+    headline =
+      newBuildings === 1
+        ? 'Nouvel immeuble en préparation'
+        : `${newBuildings} nouveaux immeubles en préparation`;
   } else if (demolitions > 0) {
-    headline = "Démolition et reconstruction";
+    headline = 'Démolition et reconstruction';
   } else if (majorWorks > 0) {
-    headline = "Rénovation majeure en cours";
+    headline = 'Rénovation majeure en cours';
   } else {
-    headline = "Travaux et modifications";
+    headline = 'Travaux et modifications';
   }
 
   // Ajouter le qualificateur de certitude
   if (certainty === 'discussion') {
-    headline = headline.replace('en préparation', 'à l\'étude');
+    headline = headline.replace('en préparation', "à l'étude");
     headline = headline.replace('en cours', 'envisagée');
   }
 
@@ -392,10 +393,10 @@ function generateNarratives(context: NarrativeContext): Narratives {
   if (newBuildings > 0) parts.push(`${newBuildings} immeuble(s)`);
   if (demolitions > 0) parts.push(`${demolitions} démolition(s)`);
   if (majorWorks > 0) parts.push(`${majorWorks} rénovation(s)`);
-  const one_liner = parts.join(' + ') || "Activité de transformation";
+  const one_liner = parts.join(' + ') || 'Activité de transformation';
 
   // Disruption summary
-  let disruption_summary = "";
+  let disruption_summary = '';
   if (phases.disruption_start && phases.disruption_end) {
     const startYear = phases.disruption_start.getFullYear();
     const endYear = phases.disruption_end.getFullYear();
@@ -434,13 +435,13 @@ function generateNarratives(context: NarrativeContext): Narratives {
 
 ### 3.2 Sources de données NYC
 
-| Source | Endpoint | Fréquence | Données |
-|--------|----------|-----------|---------|
-| DOB NOW | Socrata API | Quotidien | Permits actifs |
-| DOB Issuance | Socrata API | Quotidien | Permits historiques |
-| ZAP | Planning API | Quotidien | ULURP, rezonings |
-| PLUTO | Static download | Trimestriel | Géométries bâtiments |
-| Capital Projects | Socrata API | Hebdo | Projets publics |
+| Source           | Endpoint        | Fréquence   | Données              |
+| ---------------- | --------------- | ----------- | -------------------- |
+| DOB NOW          | Socrata API     | Quotidien   | Permits actifs       |
+| DOB Issuance     | Socrata API     | Quotidien   | Permits historiques  |
+| ZAP              | Planning API    | Quotidien   | ULURP, rezonings     |
+| PLUTO            | Static download | Trimestriel | Géométries bâtiments |
+| Capital Projects | Socrata API     | Hebdo       | Projets publics      |
 
 ### 3.3 Jobs d'ingestion
 
@@ -471,9 +472,7 @@ async function ingestDOBPermits(): Promise<void> {
     $order: 'filing_date DESC',
   });
 
-  const permits = await fetchWithRetry<DOBPermit[]>(
-    `${DOB_PERMITS_URL}?${params}`
-  );
+  const permits = await fetchWithRetry<DOBPermit[]>(`${DOB_PERMITS_URL}?${params}`);
 
   for (const permit of permits) {
     await upsertRawEvent({
@@ -491,13 +490,13 @@ async function ingestDOBPermits(): Promise<void> {
 
 function mapJobType(jobType: string): string {
   const mapping: Record<string, string> = {
-    'NB': 'new_building',
-    'A1': 'major_alteration',
-    'A2': 'minor_alteration',
-    'DM': 'demolition',
-    'SG': 'scaffold',
-    'EW': 'equipment_work',
-    'PL': 'plumbing',
+    NB: 'new_building',
+    A1: 'major_alteration',
+    A2: 'minor_alteration',
+    DM: 'demolition',
+    SG: 'scaffold',
+    EW: 'equipment_work',
+    PL: 'plumbing',
   };
   return mapping[jobType] || 'other';
 }
@@ -649,7 +648,7 @@ interface MapPlacesResponse {
       certainty: 'discussion' | 'probable' | 'certain';
       nature: string;
       headline: string;
-      disruption_end: string | null;  // Pour savoir "quand ça finit"
+      disruption_end: string | null; // Pour savoir "quand ça finit"
     };
   }>;
   meta: {
@@ -763,19 +762,19 @@ App
 
 ### 5.3 États visuels (encodage)
 
-| Variable | Encodage | Valeurs |
-|----------|----------|---------|
-| Intensité | Taille + Couleur | 4px gris → 24px rouge |
+| Variable  | Encodage          | Valeurs                                                            |
+| --------- | ----------------- | ------------------------------------------------------------------ |
+| Intensité | Taille + Couleur  | 4px gris → 24px rouge                                              |
 | Certitude | Opacité + Bordure | Discussion: 40% dashed / Probable: 70% solid / Certain: 100% solid |
-| Nature | Icône (optionnel) | Immeuble / Voirie / Parc |
+| Nature    | Icône (optionnel) | Immeuble / Voirie / Parc                                           |
 
 ```typescript
 // Palette de couleurs par intensité
 const INTENSITY_COLORS = {
-  low: '#94a3b8',      // slate-400 (0-30)
-  medium: '#fbbf24',   // amber-400 (30-60)
-  high: '#f97316',     // orange-500 (60-80)
-  extreme: '#dc2626',  // red-600 (80-100)
+  low: '#94a3b8', // slate-400 (0-30)
+  medium: '#fbbf24', // amber-400 (30-60)
+  high: '#f97316', // orange-500 (60-80)
+  extreme: '#dc2626', // red-600 (80-100)
 };
 
 function intensityToColor(intensity: number): string {
@@ -785,13 +784,17 @@ function intensityToColor(intensity: number): string {
   return INTENSITY_COLORS.extreme;
 }
 
-// Mapbox expressions pour certitude
+// MapLibre expressions pour certitude
 const certaintyOpacity = [
-  'match', ['get', 'certainty'],
-  'discussion', 0.4,
-  'probable', 0.7,
-  'certain', 1.0,
-  0.5
+  'match',
+  ['get', 'certainty'],
+  'discussion',
+  0.4,
+  'probable',
+  0.7,
+  'certain',
+  1.0,
+  0.5,
 ];
 ```
 
@@ -805,7 +808,7 @@ interface ViewStore {
   selectedYear: number;
 
   // Intensity filter
-  minIntensity: number;  // 0-100, default 0
+  minIntensity: number; // 0-100, default 0
 
   // Map
   viewport: Viewport;
@@ -868,12 +871,14 @@ function useSmartDisplay(zoom: number, pointCount: number): DisplayMode {
 **Objectif:** Carte NYC entière avec compréhension en 5 minutes
 
 #### Milestone 1.1: Infrastructure
+
 - [ ] Setup monorepo (pnpm)
 - [ ] PostgreSQL + PostGIS + H3 (Docker)
 - [ ] Config TypeScript stricte
 - [ ] CI basique
 
 #### Milestone 1.2: Pipeline données
+
 - [ ] Ingestion DOB permits (NYC entier)
 - [ ] Geocoding BIN → Place
 - [ ] Import PLUTO géométries
@@ -881,6 +886,7 @@ function useSmartDisplay(zoom: number, pointCount: number): DisplayMode {
 - [ ] Job agrégation heatmap H3
 
 #### Milestone 1.3: API
+
 - [ ] Setup Fastify
 - [ ] `GET /map/places` avec filtres
 - [ ] `GET /map/heatmap`
@@ -888,30 +894,35 @@ function useSmartDisplay(zoom: number, pointCount: number): DisplayMode {
 - [ ] `GET /search`
 
 #### Milestone 1.4: Carte de base
+
 - [ ] React + Vite + Tailwind
-- [ ] Mapbox GL integration
+- [ ] MapLibre GL integration
 - [ ] Heatmap layer
 - [ ] Points/clusters layer
 - [ ] Encodage visuel certitude
 
 #### Milestone 1.5: Interactions
+
 - [ ] Click → DetailPanel
 - [ ] TimeControl (3 modes)
 - [ ] IntensitySlider
 - [ ] SearchBar
 
 #### Milestone 1.6: Narratives
+
 - [ ] Génération headline/one_liner
 - [ ] DisruptionSummary
 - [ ] ImpactTimeline visuel
 
 #### Milestone 1.7: Polish
+
 - [ ] Design system tokens
 - [ ] Responsive (mobile bottom sheet)
 - [ ] Empty states guidants
 - [ ] Loading states
 
 #### Milestone 1.8: Deploy
+
 - [ ] Railway (DB)
 - [ ] Vercel (frontend)
 - [ ] Domain + SSL
@@ -940,12 +951,12 @@ function useSmartDisplay(zoom: number, pointCount: number): DisplayMode {
 
 ### Métriques UX
 
-| Métrique | Cible |
-|----------|-------|
+| Métrique                  | Cible    |
+| ------------------------- | -------- |
 | Time to first interaction | < 10 sec |
-| Time to "aha" moment | < 60 sec |
-| Bounce rate | < 40% |
-| 5-min comprehension test | Passé |
+| Time to "aha" moment      | < 60 sec |
+| Bounce rate               | < 40%    |
+| 5-min comprehension test  | Passé    |
 
 ### Test de compréhension (5 min)
 
@@ -967,21 +978,21 @@ Après 5 minutes sur le site, l'utilisateur peut-il dire:
 
 ## 8. Risques et mitigations
 
-| Risque | Impact | Mitigation |
-|--------|--------|------------|
-| Estimation dates fausse | Mauvaise prédiction impact | Qualifier clairement l'incertitude |
-| NYC = trop de données | Carte illisible | Declutter agressif, intensité default > 0 |
-| Narratives génériques | Pas de valeur ajoutée | Investir dans les templates par nature |
-| Rate limits NYC API | Données stale | Cache 7 jours, sync incrémental |
+| Risque                  | Impact                     | Mitigation                                |
+| ----------------------- | -------------------------- | ----------------------------------------- |
+| Estimation dates fausse | Mauvaise prédiction impact | Qualifier clairement l'incertitude        |
+| NYC = trop de données   | Carte illisible            | Declutter agressif, intensité default > 0 |
+| Narratives génériques   | Pas de valeur ajoutée      | Investir dans les templates par nature    |
+| Rate limits NYC API     | Données stale              | Cache 7 jours, sync incrémental           |
 
 ---
 
 ## 9. Décisions techniques
 
-| Question | Décision |
-|----------|----------|
-| H3 résolution heatmap | 8 (~460m hexagons) |
-| Clustering côté | Serveur (Supercluster) |
-| Recalcul transformations | Quotidien, batch |
-| Hébergement | Railway DB + Vercel frontend |
-| Mapbox vs Maplibre | Mapbox (simplicité) → Maplibre Phase 3 |
+| Question                 | Décision                                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| H3 résolution heatmap    | 8 (~460m hexagons)                                                                                          |
+| Clustering côté          | Serveur (Supercluster)                                                                                      |
+| Recalcul transformations | Quotidien, batch                                                                                            |
+| Hébergement              | Railway DB + Vercel frontend                                                                                |
+| Tiles                    | MapLibre GL + OpenFreeMap public (positron). Self-host (Protomaps PMTiles sur Cloudflare R2) si SLA requis. |

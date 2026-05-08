@@ -92,7 +92,7 @@ export async function fetchDOBNowViolations(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
@@ -103,7 +103,9 @@ export async function fetchDOBNowViolations(options: {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 120000); // 2 min timeout
 
     const response = await fetch(url, {
       headers,
@@ -133,10 +135,10 @@ export async function fetchDOBNowViolations(options: {
 function mapBorough(borough: string | undefined): string | null {
   if (!borough) return null;
   const mapping: Record<string, string> = {
-    'MANHATTAN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'QUEENS': 'Queens',
+    MANHATTAN: 'Manhattan',
+    BRONX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
     '1': 'Manhattan',
     '2': 'Bronx',
@@ -159,7 +161,9 @@ function parseDate(dateStr: string | undefined): Date | null {
 /**
  * Normalize a DOB NOW violation to our format
  */
-export function normalizeDOBNowViolation(violation: DOBNowViolation): NormalizedDOBNowViolation | null {
+export function normalizeDOBNowViolation(
+  violation: DOBNowViolation,
+): NormalizedDOBNowViolation | null {
   // Must have violation number and date
   if (!violation.violation_number || !violation.violation_issue_date) {
     return null;
@@ -171,9 +175,10 @@ export function normalizeDOBNowViolation(violation: DOBNowViolation): Normalized
   }
 
   // Build address
-  const address = violation.house_number && violation.street
-    ? `${violation.house_number} ${violation.street}`.trim()
-    : null;
+  const address =
+    violation.house_number && violation.street
+      ? `${violation.house_number} ${violation.street}`.trim()
+      : null;
 
   // Parse coordinates
   const latitude = violation.latitude ? parseFloat(violation.latitude) : null;
@@ -205,7 +210,7 @@ export function normalizeDOBNowViolation(violation: DOBNowViolation): Normalized
  */
 export async function fetchAllDOBNowViolationsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedDOBNowViolation[]> {
   const { appToken, onProgress } = options;
   const batchSize = 5000;
@@ -236,7 +241,7 @@ export async function fetchAllDOBNowViolationsSince(
     } else {
       offset += batchSize;
       // Delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 

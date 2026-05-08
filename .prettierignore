@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+data
+**/drizzle/**
+pnpm-lock.yaml
+*.db
+.husky/_

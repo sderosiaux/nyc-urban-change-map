@@ -23,7 +23,16 @@ describe('normalizeNTA', () => {
       shape_area: '1234567.89',
       the_geom: {
         type: 'MultiPolygon',
-        coordinates: [[[[-73.99, 40.75], [-73.98, 40.75], [-73.98, 40.76], [-73.99, 40.75]]]],
+        coordinates: [
+          [
+            [
+              [-73.99, 40.75],
+              [-73.98, 40.75],
+              [-73.98, 40.76],
+              [-73.99, 40.75],
+            ],
+          ],
+        ],
       },
     };
 
@@ -47,7 +56,7 @@ describe('normalizeNTA', () => {
       ntaname: 'Test NTA',
     };
 
-    const result = normalizeNTA(record as any);
+    const result = normalizeNTA(record);
     expect(result).toBeNull();
   });
 
@@ -84,7 +93,16 @@ describe('normalizeCommunityDistrict', () => {
       shape_area: '987654.32',
       the_geom: {
         type: 'MultiPolygon',
-        coordinates: [[[[-73.99, 40.75], [-73.98, 40.75], [-73.98, 40.76], [-73.99, 40.75]]]],
+        coordinates: [
+          [
+            [
+              [-73.99, 40.75],
+              [-73.98, 40.75],
+              [-73.98, 40.76],
+              [-73.99, 40.75],
+            ],
+          ],
+        ],
       },
     };
 
@@ -147,7 +165,16 @@ describe('normalizeBorough', () => {
       shape_area: '5000000.00',
       the_geom: {
         type: 'MultiPolygon',
-        coordinates: [[[[-74.05, 40.70], [-73.90, 40.70], [-73.90, 40.80], [-74.05, 40.70]]]],
+        coordinates: [
+          [
+            [
+              [-74.05, 40.7],
+              [-73.9, 40.7],
+              [-73.9, 40.8],
+              [-74.05, 40.7],
+            ],
+          ],
+        ],
       },
     };
 
@@ -156,7 +183,7 @@ describe('normalizeBorough', () => {
     expect(result).not.toBeNull();
     expect(result!.boroCode).toBe('1');
     expect(result!.boroName).toBe('Manhattan');
-    expect(result!.shapeArea).toBeCloseTo(5000000.00);
+    expect(result!.shapeArea).toBeCloseTo(5000000.0);
     expect(result!.geometry).not.toBeNull();
   });
 

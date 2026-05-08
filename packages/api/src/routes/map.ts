@@ -7,7 +7,13 @@ import { z } from 'zod';
 import { db, places, transformationStates, heatmapCells, rawEvents } from '@ucm/pipeline';
 import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { cellToBoundary } from 'h3-js';
-import type { PlacesGeoJSON, PlaceFeature, HeatmapResponse, TimeMode, Certainty } from '@ucm/shared';
+import type {
+  PlacesGeoJSON,
+  PlaceFeature,
+  HeatmapResponse,
+  TimeMode,
+  Certainty,
+} from '@ucm/shared';
 
 // Query parameter schemas
 const boundsSchema = z.string().regex(/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/);
@@ -57,20 +63,20 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       // Past: disruption ended before or during selected year
       conditions.push(
         sql`${transformationStates.disruptionEnd} IS NOT NULL`,
-        sql`${transformationStates.disruptionEnd} <= ${yearEnd}`
+        sql`${transformationStates.disruptionEnd} <= ${yearEnd}`,
       );
     } else if (query.time_mode === 'now') {
       // Now: disruption is currently active (started and not yet ended)
       conditions.push(
         sql`(${transformationStates.disruptionStart} IS NULL OR ${transformationStates.disruptionStart} <= ${nowStr})`,
-        sql`(${transformationStates.disruptionEnd} IS NULL OR ${transformationStates.disruptionEnd} >= ${nowStr})`
+        sql`(${transformationStates.disruptionEnd} IS NULL OR ${transformationStates.disruptionEnd} >= ${nowStr})`,
       );
     } else if (query.time_mode === 'future') {
       // Future: show all projects active at or beyond selected year
       // A project ending in 2032 should show when viewing 2030
       conditions.push(
         sql`${transformationStates.disruptionEnd} IS NOT NULL`,
-        sql`${transformationStates.disruptionEnd} >= ${yearStart}`
+        sql`${transformationStates.disruptionEnd} >= ${yearStart}`,
       );
     }
 
@@ -102,21 +108,18 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       })
       .from(places)
       .innerJoin(transformationStates, eq(places.id, transformationStates.placeId))
-      .where(and(
-        ...conditions,
-        gte(transformationStates.intensity, query.min_intensity),
-      ))
+      .where(and(...conditions, gte(transformationStates.intensity, query.min_intensity)))
       // Order: discussion points first (they're important but low intensity),
       // then by intensity descending for the rest
       // Note: avoid RANDOM() as it prevents query caching and is expensive
       .orderBy(
         sql`CASE WHEN ${transformationStates.certainty} = 'discussion' THEN 0 ELSE 1 END`,
-        desc(transformationStates.intensity)
+        desc(transformationStates.intensity),
       )
       .limit(limit);
 
     // Convert to GeoJSON
-    const features: PlaceFeature[] = results.map(place => ({
+    const features: PlaceFeature[] = results.map((place) => ({
       type: 'Feature' as const,
       id: place.id,
       geometry: place.geometryJson as PlaceFeature['geometry'],
@@ -137,7 +140,7 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       meta: {
         total: features.length,
         clustered: query.zoom < 15,
-        timeMode: query.time_mode as TimeMode,
+        timeMode: query.time_mode,
       },
     };
 
@@ -159,25 +162,28 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
     const cells = await db
       .select()
       .from(heatmapCells)
-      .where(and(
-        gte(heatmapCells.centerLng, swLng!),
-        lte(heatmapCells.centerLng, neLng!),
-        gte(heatmapCells.centerLat, swLat!),
-        lte(heatmapCells.centerLat, neLat!),
-      ));
+      .where(
+        and(
+          gte(heatmapCells.centerLng, swLng!),
+          lte(heatmapCells.centerLng, neLng!),
+          gte(heatmapCells.centerLat, swLat!),
+          lte(heatmapCells.centerLat, neLat!),
+        ),
+      );
 
     const response: HeatmapResponse = {
-      cells: cells.map(cell => {
+      cells: cells.map((cell) => {
         // Compute boundary from H3 index
         const boundary = cellToBoundary(cell.h3Index, true); // true for [lng, lat] order
 
         return {
           h3Index: cell.h3Index,
-          boundary: boundary as [number, number][],
+          boundary: boundary,
           avgIntensity: cell.avgIntensity ?? 0,
           maxIntensity: cell.maxIntensity ?? 0,
           placeCount: cell.placeCount ?? 0,
-          dominantNature: (cell.dominantNature ?? 'mixed') as HeatmapResponse['cells'][0]['dominantNature'],
+          dominantNature: (cell.dominantNature ??
+            'mixed') as HeatmapResponse['cells'][0]['dominantNature'],
         };
       }),
       meta: {

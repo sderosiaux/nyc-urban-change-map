@@ -39,15 +39,15 @@ export const neighborhoodsRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(limit);
 
     const neighborhoods: NeighborhoodStats[] = stats
-      .filter(s => s.ntaCode && s.ntaName)
-      .map(s => ({
+      .filter((s) => s.ntaCode && s.ntaName)
+      .map((s) => ({
         ntaCode: s.ntaCode!,
         ntaName: s.ntaName!,
         borough: s.borough ?? 'Unknown',
         placeCount: Number(s.placeCount) || 0,
         avgIntensity: Math.round(Number(s.avgIntensity) || 0),
         maxIntensity: Number(s.maxIntensity) || 0,
-        dominantNature: 'mixed' as TransformationNature, // Would need separate query
+        dominantNature: 'mixed', // Would need separate query
         activeTransformations: Number(s.activeTransformations) || 0,
       }));
 
@@ -108,7 +108,7 @@ export const neighborhoodsRoutes: FastifyPluginAsync = async (fastify) => {
       avgIntensity: Math.round(Number(s.avgIntensity) || 0),
       maxIntensity: Number(s.maxIntensity) || 0,
       activeTransformations: Number(s.activeTransformations) || 0,
-      topPlaces: topPlaces.map(p => ({
+      topPlaces: topPlaces.map((p) => ({
         id: p.id,
         address: p.address ?? 'Unknown',
         intensity: p.intensity ?? 0,

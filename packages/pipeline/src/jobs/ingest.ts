@@ -4,60 +4,115 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { db, places, rawEvents, dataSources, closeDatabase, initializeDatabase } from '../db/index.js';
+import {
+  db,
+  places,
+  rawEvents,
+  dataSources,
+  closeDatabase,
+  initializeDatabase,
+} from '../db/index.js';
 import { fetchAllDOBPermitsSince, type NormalizedEvent } from '../ingest/dob.js';
 import { fetchAllDOBNowJobsSince, type NormalizedDOBNowEvent } from '../ingest/dob-now.js';
 import { fetchAllZAPProjectsWithCoordinates, type NormalizedZAPEvent } from '../ingest/zap.js';
 import { fetchAllCapitalProjectsSince, type NormalizedCapitalEvent } from '../ingest/capital.js';
 import { fetchAllComplaintsSince, type NormalizedComplaint } from '../ingest/dob-complaints.js';
 import { fetchAllViolationsSince, type NormalizedViolation } from '../ingest/dob-violations.js';
-import { fetchAllDOBNowViolationsSince, type NormalizedDOBNowViolation } from '../ingest/dob-now-violations.js';
+import {
+  fetchAllDOBNowViolationsSince,
+  type NormalizedDOBNowViolation,
+} from '../ingest/dob-now-violations.js';
 import { fetchAllCEQRProjectsSince, type NormalizedCEQREvent } from '../ingest/ceqr.js';
 
 const APP_TOKEN = process.env['NYC_OPEN_DATA_TOKEN'];
 
-type AnyNormalizedEvent = NormalizedEvent | NormalizedDOBNowEvent | NormalizedZAPEvent | NormalizedCapitalEvent | NormalizedComplaint | NormalizedViolation | NormalizedDOBNowViolation | NormalizedCEQREvent;
+type AnyNormalizedEvent =
+  | NormalizedEvent
+  | NormalizedDOBNowEvent
+  | NormalizedZAPEvent
+  | NormalizedCapitalEvent
+  | NormalizedComplaint
+  | NormalizedViolation
+  | NormalizedDOBNowViolation
+  | NormalizedCEQREvent;
 
 interface DataSourceConfig {
   name: string;
-  fetch: (sinceDate: Date, options: { appToken?: string; onProgress?: (count: number) => void }) => Promise<AnyNormalizedEvent[]>;
+  fetch: (
+    sinceDate: Date,
+    options: { appToken?: string; onProgress?: (count: number) => void },
+  ) => Promise<AnyNormalizedEvent[]>;
 }
 
 const DATA_SOURCES: DataSourceConfig[] = [
   {
     name: 'dob-now',
-    fetch: (sinceDate, options) => fetchAllDOBNowJobsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }),
+    fetch: (sinceDate, options) =>
+      fetchAllDOBNowJobsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
   {
     name: 'dob-complaints',
-    fetch: (sinceDate, options) => fetchAllComplaintsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }) as Promise<AnyNormalizedEvent[]>,
+    fetch: (sinceDate, options) =>
+      fetchAllComplaintsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
   {
     name: 'dob-violations',
-    fetch: (sinceDate, options) => fetchAllViolationsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }) as Promise<AnyNormalizedEvent[]>,
+    fetch: (sinceDate, options) =>
+      fetchAllViolationsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
   {
     name: 'dob-now-violations',
-    fetch: (sinceDate, options) => fetchAllDOBNowViolationsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }) as Promise<AnyNormalizedEvent[]>,
+    fetch: (sinceDate, options) =>
+      fetchAllDOBNowViolationsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
   {
     name: 'zap',
-    fetch: (sinceDate, options) => fetchAllZAPProjectsWithCoordinates(sinceDate, { appToken: options.appToken, onProgress: (msg) => console.log(`    ${msg}`) }),
+    fetch: (sinceDate, options) =>
+      fetchAllZAPProjectsWithCoordinates(sinceDate, {
+        appToken: options.appToken,
+        onProgress: (msg) => {
+          console.log(`    ${msg}`);
+        },
+      }),
   },
   {
     name: 'capital',
-    fetch: (sinceDate, options) => fetchAllCapitalProjectsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }),
+    fetch: (sinceDate, options) =>
+      fetchAllCapitalProjectsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
   {
     name: 'ceqr',
-    fetch: (sinceDate, options) => fetchAllCEQRProjectsSince(sinceDate, { appToken: options.appToken, onProgress: options.onProgress }),
+    fetch: (sinceDate, options) =>
+      fetchAllCEQRProjectsSince(sinceDate, {
+        appToken: options.appToken,
+        onProgress: options.onProgress,
+      }),
   },
 ];
 
 // Minimum hours between syncs for the same source (default 12h, data updates ~daily)
 const MIN_SYNC_INTERVAL_HOURS = parseInt(process.env['MIN_SYNC_INTERVAL_HOURS'] || '12', 10);
 
-async function ingestDataSource(config: DataSourceConfig, forceSync = false, resync = false): Promise<void> {
+async function ingestDataSource(
+  config: DataSourceConfig,
+  forceSync = false,
+  resync = false,
+): Promise<void> {
   const { name, fetch } = config;
 
   console.log(`\n--- Starting ${name.toUpperCase()} ingestion ---`);
@@ -68,11 +123,14 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false, res
   });
 
   if (!source) {
-    const result = await db.insert(dataSources).values({
-      name,
-      status: 'idle',
-      recordCount: 0,
-    }).returning();
+    const result = await db
+      .insert(dataSources)
+      .values({
+        name,
+        status: 'idle',
+        recordCount: 0,
+      })
+      .returning();
     source = result[0];
   }
 
@@ -82,7 +140,9 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false, res
     const hoursSinceSync = (Date.now() - lastSyncDate.getTime()) / (1000 * 60 * 60);
 
     if (hoursSinceSync < MIN_SYNC_INTERVAL_HOURS) {
-      console.log(`  Skipping - last synced ${hoursSinceSync.toFixed(1)}h ago (threshold: ${MIN_SYNC_INTERVAL_HOURS}h)`);
+      console.log(
+        `  Skipping - last synced ${hoursSinceSync.toFixed(1)}h ago (threshold: ${MIN_SYNC_INTERVAL_HOURS}h)`,
+      );
       console.log(`  ${source.recordCount} records from ${lastSyncDate.toISOString()}`);
       return;
     }
@@ -105,9 +165,7 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false, res
   console.log(`Fetching ${name} data since ${sinceDate.toISOString()}...`);
 
   // Update status to syncing
-  await db.update(dataSources)
-    .set({ status: 'syncing' })
-    .where(eq(dataSources.name, name));
+  await db.update(dataSources).set({ status: 'syncing' }).where(eq(dataSources.name, name));
 
   // Fetch all events
   const events = await fetch(sinceDate, {
@@ -134,7 +192,8 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false, res
   }
 
   // Update data source record
-  await db.update(dataSources)
+  await db
+    .update(dataSources)
     .set({
       status: 'idle',
       lastSync: new Date().toISOString(),
@@ -149,19 +208,19 @@ async function ingestDataSource(config: DataSourceConfig, forceSync = false, res
 async function main() {
   const forceSync = process.argv.includes('--force');
   const resync = process.argv.includes('--resync');
-  const sourceArg = process.argv.find(arg => arg.startsWith('--source='));
+  const sourceArg = process.argv.find((arg) => arg.startsWith('--source='));
   const filterSource = sourceArg ? sourceArg.split('=')[1] : null;
 
   console.log('Initializing database...');
   initializeDatabase();
 
   const sourcesToRun = filterSource
-    ? DATA_SOURCES.filter(s => s.name === filterSource)
+    ? DATA_SOURCES.filter((s) => s.name === filterSource)
     : DATA_SOURCES;
 
   if (filterSource && sourcesToRun.length === 0) {
     console.error(`Unknown source: ${filterSource}`);
-    console.log('Available sources:', DATA_SOURCES.map(s => s.name).join(', '));
+    console.log('Available sources:', DATA_SOURCES.map((s) => s.name).join(', '));
     process.exit(1);
   }
 
@@ -181,7 +240,8 @@ async function main() {
         console.error(`${config.name} ingestion failed:`, error);
 
         // Update data source with error
-        await db.update(dataSources)
+        await db
+          .update(dataSources)
           .set({
             status: 'error',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -193,7 +253,6 @@ async function main() {
     }
 
     console.log('\n=== All data sources ingestion complete ===');
-
   } finally {
     closeDatabase();
   }
@@ -210,7 +269,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
   longitude: number | null;
 } {
   if (event.source === 'dob') {
-    const e = event as NormalizedEvent;
+    const e = event;
     return {
       bin: e.bin,
       bbl: null,
@@ -222,7 +281,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'dob-now') {
-    const e = event as NormalizedDOBNowEvent;
+    const e = event;
     return {
       bin: e.bin,
       bbl: null,
@@ -234,7 +293,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'dob-complaints') {
-    const e = event as NormalizedComplaint;
+    const e = event;
     return {
       bin: e.bin,
       bbl: null,
@@ -246,7 +305,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'dob-violations') {
-    const e = event as NormalizedViolation;
+    const e = event;
     return {
       bin: e.bin,
       bbl: e.bbl,
@@ -258,7 +317,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'dob-now-violations') {
-    const e = event as NormalizedDOBNowViolation;
+    const e = event;
     return {
       bin: e.bin,
       bbl: e.bbl,
@@ -270,7 +329,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'zap') {
-    const e = event as NormalizedZAPEvent;
+    const e = event;
     return {
       bin: null,
       bbl: null, // NYC Open Data ZAP doesn't include BBL
@@ -282,7 +341,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else if (event.source === 'ceqr') {
-    const e = event as NormalizedCEQREvent;
+    const e = event;
     return {
       bin: null,
       bbl: null,
@@ -294,7 +353,7 @@ function extractEventProperties(event: AnyNormalizedEvent): {
       longitude: e.longitude,
     };
   } else {
-    const e = event as NormalizedCapitalEvent;
+    const e = event;
     return {
       bin: null,
       bbl: null,
@@ -313,17 +372,20 @@ function extractEventProperties(event: AnyNormalizedEvent): {
  */
 function extractEventMeta(event: AnyNormalizedEvent): { eventDate: Date; eventType: string } {
   if (event.source === 'dob-complaints') {
-    const e = event as NormalizedComplaint;
+    const e = event;
     return { eventDate: e.dateEntered, eventType: 'other' }; // Complaints signal issues
   } else if (event.source === 'dob-violations') {
-    const e = event as NormalizedViolation;
+    const e = event;
     return { eventDate: e.issueDate, eventType: 'other' }; // BISWeb violations
   } else if (event.source === 'dob-now-violations') {
-    const e = event as NormalizedDOBNowViolation;
+    const e = event;
     return { eventDate: e.issueDate, eventType: 'other' }; // DOB NOW violations (civil penalties)
   } else {
     // All other sources have eventDate and eventType
-    return { eventDate: (event as NormalizedEvent).eventDate, eventType: (event as NormalizedEvent).eventType };
+    return {
+      eventDate: (event as NormalizedEvent).eventDate,
+      eventType: (event as NormalizedEvent).eventType,
+    };
   }
 }
 
@@ -345,21 +407,24 @@ async function processBatch(events: AnyNormalizedEvent[]): Promise<void> {
 
     if (!place && props.latitude && props.longitude) {
       // Create new place
-      const result = await db.insert(places).values({
-        geometryJson: {
-          type: 'Point',
-          coordinates: [props.longitude, props.latitude],
-        },
-        geometryType: 'point',
-        bin: props.bin,
-        bbl: props.bbl,
-        address: props.address,
-        borough: props.borough,
-        ntaCode: props.ntaCode,
-        communityDistrict: props.communityDistrict,
-        latitude: props.latitude,
-        longitude: props.longitude,
-      }).returning();
+      const result = await db
+        .insert(places)
+        .values({
+          geometryJson: {
+            type: 'Point',
+            coordinates: [props.longitude, props.latitude],
+          },
+          geometryType: 'point',
+          bin: props.bin,
+          bbl: props.bbl,
+          address: props.address,
+          borough: props.borough,
+          ntaCode: props.ntaCode,
+          communityDistrict: props.communityDistrict,
+          latitude: props.latitude,
+          longitude: props.longitude,
+        })
+        .returning();
       place = result[0];
     }
 
@@ -369,7 +434,8 @@ async function processBatch(events: AnyNormalizedEvent[]): Promise<void> {
     }
 
     // Upsert raw event
-    await db.insert(rawEvents)
+    await db
+      .insert(rawEvents)
       .values({
         placeId: place.id,
         source: event.source,

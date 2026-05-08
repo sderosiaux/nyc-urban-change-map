@@ -7,81 +7,101 @@ import { normalizeCEQRProject, mapCEQRToEventType } from '../ingest/ceqr.js';
 
 describe('mapCEQRToEventType', () => {
   it('should return ceqr_completed for completed projects', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP001',
-      projectname: 'Test',
-      projectstatus: 'Completed',
-    })).toBe('ceqr_completed');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP001',
+        projectname: 'Test',
+        projectstatus: 'Completed',
+      }),
+    ).toBe('ceqr_completed');
 
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP002',
-      projectname: 'Test',
-      projectcompleted: '2024-01-01',
-    })).toBe('ceqr_completed');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP002',
+        projectname: 'Test',
+        projectcompleted: '2024-01-01',
+      }),
+    ).toBe('ceqr_completed');
   });
 
   it('should return ceqr_eis_final for FEIS submitted', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP003',
-      projectname: 'Test',
-      feissubmitteddate: '2024-06-01',
-    })).toBe('ceqr_eis_final');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP003',
+        projectname: 'Test',
+        feissubmitteddate: '2024-06-01',
+      }),
+    ).toBe('ceqr_eis_final');
   });
 
   it('should return ceqr_eis_draft for DEIS submitted', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP004',
-      projectname: 'Test',
-      deissubmitteddate: '2024-03-01',
-    })).toBe('ceqr_eis_draft');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP004',
+        projectname: 'Test',
+        deissubmitteddate: '2024-03-01',
+      }),
+    ).toBe('ceqr_eis_draft');
   });
 
   it('should return ceqr_eas for EAS submitted', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP005',
-      projectname: 'Test',
-      eassubmitteddate: '2024-01-01',
-    })).toBe('ceqr_eas');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP005',
+        projectname: 'Test',
+        eassubmitteddate: '2024-01-01',
+      }),
+    ).toBe('ceqr_eas');
   });
 
   it('should return ceqr_eas for active projects', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP006',
-      projectname: 'Test',
-      projectstatus: 'Active',
-    })).toBe('ceqr_eas');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP006',
+        projectname: 'Test',
+        projectstatus: 'Active',
+      }),
+    ).toBe('ceqr_eas');
 
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP007',
-      projectname: 'Test',
-      projectstatus: 'In Progress',
-    })).toBe('ceqr_eas');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP007',
+        projectname: 'Test',
+        projectstatus: 'In Progress',
+      }),
+    ).toBe('ceqr_eas');
   });
 
   it('should return null for projects without status or dates', () => {
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP008',
-      projectname: 'Test',
-    })).toBeNull();
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP008',
+        projectname: 'Test',
+      }),
+    ).toBeNull();
   });
 
   it('should prioritize status in order: completed > FEIS > DEIS > EAS', () => {
     // FEIS takes precedence over DEIS
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP009',
-      projectname: 'Test',
-      feissubmitteddate: '2024-06-01',
-      deissubmitteddate: '2024-03-01',
-      eassubmitteddate: '2024-01-01',
-    })).toBe('ceqr_eis_final');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP009',
+        projectname: 'Test',
+        feissubmitteddate: '2024-06-01',
+        deissubmitteddate: '2024-03-01',
+        eassubmitteddate: '2024-01-01',
+      }),
+    ).toBe('ceqr_eis_final');
 
     // Completed takes precedence over all
-    expect(mapCEQRToEventType({
-      ceqrnumber: '24DCP010',
-      projectname: 'Test',
-      projectstatus: 'Completed',
-      feissubmitteddate: '2024-06-01',
-    })).toBe('ceqr_completed');
+    expect(
+      mapCEQRToEventType({
+        ceqrnumber: '24DCP010',
+        projectname: 'Test',
+        projectstatus: 'Completed',
+        feissubmitteddate: '2024-06-01',
+      }),
+    ).toBe('ceqr_completed');
   });
 });
 
@@ -138,7 +158,7 @@ describe('normalizeCEQRProject', () => {
       projectstatus: 'Active',
     };
 
-    const result = normalizeCEQRProject(project as any);
+    const result = normalizeCEQRProject(project);
     expect(result).toBeNull();
   });
 
@@ -148,7 +168,7 @@ describe('normalizeCEQRProject', () => {
       projectstatus: 'Active',
     };
 
-    const result = normalizeCEQRProject(project as any);
+    const result = normalizeCEQRProject(project);
     expect(result).toBeNull();
   });
 

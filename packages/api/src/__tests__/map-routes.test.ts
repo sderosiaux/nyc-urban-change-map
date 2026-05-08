@@ -57,7 +57,9 @@ describe('Map routes cache headers', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['cache-control']).toBe('public, max-age=60, stale-while-revalidate=300');
+    expect(response.headers['cache-control']).toBe(
+      'public, max-age=60, stale-while-revalidate=300',
+    );
   });
 
   it('should set cache headers on /map/heatmap', async () => {
@@ -67,7 +69,9 @@ describe('Map routes cache headers', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['cache-control']).toBe('public, max-age=300, stale-while-revalidate=600');
+    expect(response.headers['cache-control']).toBe(
+      'public, max-age=300, stale-while-revalidate=600',
+    );
   });
 
   it('places cache should be 60 seconds with 5 min stale-while-revalidate', async () => {
@@ -98,14 +102,14 @@ describe('Map routes cache headers', () => {
 describe('Cache-Control header format', () => {
   it('should parse max-age correctly', () => {
     const header = 'public, max-age=60, stale-while-revalidate=300';
-    const maxAgeMatch = header.match(/max-age=(\d+)/);
+    const maxAgeMatch = /max-age=(\d+)/.exec(header);
     expect(maxAgeMatch).not.toBeNull();
     expect(parseInt(maxAgeMatch![1])).toBe(60);
   });
 
   it('should parse stale-while-revalidate correctly', () => {
     const header = 'public, max-age=300, stale-while-revalidate=600';
-    const swrMatch = header.match(/stale-while-revalidate=(\d+)/);
+    const swrMatch = /stale-while-revalidate=(\d+)/.exec(header);
     expect(swrMatch).not.toBeNull();
     expect(parseInt(swrMatch![1])).toBe(600);
   });
