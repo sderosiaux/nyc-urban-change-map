@@ -40,7 +40,9 @@ export interface ComputedTransformationState {
 /**
  * Compute the complete transformation state for a place
  */
-export function computeTransformationState(input: TransformationInput): ComputedTransformationState {
+export function computeTransformationState(
+  input: TransformationInput,
+): ComputedTransformationState {
   const { place, events } = input;
 
   // If no events, return minimal state
@@ -76,9 +78,9 @@ export function computeTransformationState(input: TransformationInput): Computed
   const narratives = generateNarratives({ events, nature, certainty, phases });
 
   // Calculate activity dates
-  const eventDates = events.map(e => new Date(e.eventDate));
-  const firstActivity = new Date(Math.min(...eventDates.map(d => d.getTime())));
-  const lastActivity = new Date(Math.max(...eventDates.map(d => d.getTime())));
+  const eventDates = events.map((e) => new Date(e.eventDate));
+  const firstActivity = new Date(Math.min(...eventDates.map((d) => d.getTime())));
+  const lastActivity = new Date(Math.max(...eventDates.map((d) => d.getTime())));
 
   return {
     placeId: place.id,
@@ -134,7 +136,7 @@ export function toDbInsert(state: ComputedTransformationState): NewTransformatio
  * Batch compute transformation states for multiple places
  */
 export function computeTransformationStates(
-  inputs: TransformationInput[]
+  inputs: TransformationInput[],
 ): ComputedTransformationState[] {
   return inputs.map(computeTransformationState);
 }

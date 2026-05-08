@@ -43,7 +43,7 @@ export async function getMapPlaces(params: MapPlacesParams): Promise<PlacesGeoJS
     throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<PlacesGeoJSON>;
 }
 
 export interface HeatmapParams {
@@ -66,7 +66,7 @@ export async function getHeatmap(params: HeatmapParams): Promise<HeatmapResponse
     throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<HeatmapResponse>;
 }
 
 // =============================================================================
@@ -98,7 +98,7 @@ export async function getPlaceDetail(params: PlaceDetailParams): Promise<PlaceDe
     throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<PlaceDetail>;
 }
 
 // =============================================================================
@@ -132,7 +132,7 @@ export async function search(query: string): Promise<SearchResponse> {
     throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<SearchResponse>;
 }
 
 // =============================================================================
@@ -172,5 +172,5 @@ export async function getNeighborhoods(borough?: string): Promise<NeighborhoodsR
     throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<NeighborhoodsResponse>;
 }

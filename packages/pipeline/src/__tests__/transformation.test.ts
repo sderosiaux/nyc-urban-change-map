@@ -24,11 +24,7 @@ function createPlace(id = 'place-1'): Place {
 }
 
 // Helper to create mock events
-function createEvent(
-  eventType: string,
-  eventDate = '2024-01-15',
-  placeId = 'place-1'
-): RawEvent {
+function createEvent(eventType: string, eventDate = '2024-01-15', placeId = 'place-1'): RawEvent {
   return {
     id: crypto.randomUUID(),
     placeId,
@@ -61,8 +57,8 @@ describe('computeTransformationState', () => {
   it('should compute intensity from events', () => {
     const place = createPlace();
     const events = [
-      createEvent('new_building'),  // 50 points
-      createEvent('scaffold'),       // 3 points
+      createEvent('new_building'), // 50 points
+      createEvent('scaffold'), // 3 points
     ];
     const result = computeTransformationState({ place, events });
 
@@ -191,9 +187,7 @@ describe('integration scenarios', () => {
 
   it('should handle a proposed development', () => {
     const place = createPlace();
-    const events = [
-      createEvent('zap_filed', '2024-01-01'),
-    ];
+    const events = [createEvent('zap_filed', '2024-01-01')];
     const result = computeTransformationState({ place, events });
 
     // Low intensity

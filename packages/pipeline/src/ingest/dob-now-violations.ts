@@ -99,7 +99,7 @@ export async function fetchDOBNowViolations(options: {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.dobNowViolations}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.dobNowViolations}?${params.toString()}`;
 
   try {
     const controller = new AbortController();
@@ -118,7 +118,7 @@ export async function fetchDOBNowViolations(options: {
       return [];
     }
 
-    return response.json() as Promise<DOBNowViolation[]>;
+    return (await response.json()) as DOBNowViolation[];
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('DOB NOW Violations fetch timed out after 2 minutes');
@@ -146,7 +146,7 @@ function mapBorough(borough: string | undefined): string | null {
     '4': 'Queens',
     '5': 'Staten Island',
   };
-  return mapping[borough.toUpperCase()] || borough;
+  return mapping[borough.toUpperCase()] ?? borough;
 }
 
 /**
@@ -187,20 +187,20 @@ export function normalizeDOBNowViolation(
   return {
     source: 'dob-now-violations',
     sourceId: violation.violation_number,
-    bin: violation.bin || null,
-    bbl: violation.bbl || null,
+    bin: violation.bin ?? null,
+    bbl: violation.bbl ?? null,
     address,
     borough: mapBorough(violation.borough),
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    ntaCode: violation.nta_2020 || null,
-    communityDistrict: violation.community_board || null,
+    ntaCode: violation.nta_2020 ?? null,
+    communityDistrict: violation.community_board ?? null,
     issueDate,
-    violationType: violation.violation_type || null,
-    violationStatus: violation.violation_status || null,
-    violationRemarks: violation.violation_remarks || null,
-    deviceNumber: violation.device_number || null,
-    deviceType: violation.device_type || null,
+    violationType: violation.violation_type ?? null,
+    violationStatus: violation.violation_status ?? null,
+    violationRemarks: violation.violation_remarks ?? null,
+    deviceNumber: violation.device_number ?? null,
+    deviceType: violation.device_type ?? null,
     rawData: violation,
   };
 }

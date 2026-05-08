@@ -6,18 +6,19 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db, places, transformationStates } from '@ucm/pipeline';
 import { eq, sql, desc } from 'drizzle-orm';
-import type { NeighborhoodStats, TransformationNature } from '@ucm/shared';
+import type { NeighborhoodStats } from '@ucm/shared';
 
 const querySchema = z.object({
   borough: z.string().optional(),
   limit: z.coerce.number().min(1).max(100).optional().default(50),
 });
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export const neighborhoodsRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /neighborhoods - Get neighborhood stats
    */
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (request, _reply) => {
     const { borough, limit } = querySchema.parse(request.query);
 
     // Aggregate by NTA
@@ -39,16 +40,19 @@ export const neighborhoodsRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(limit);
 
     const neighborhoods: NeighborhoodStats[] = stats
-      .filter((s) => s.ntaCode && s.ntaName)
+      .filter(
+        (s): s is typeof s & { ntaCode: string; ntaName: string } =>
+          s.ntaCode != null && s.ntaName != null,
+      )
       .map((s) => ({
-        ntaCode: s.ntaCode!,
-        ntaName: s.ntaName!,
+        ntaCode: s.ntaCode,
+        ntaName: s.ntaName,
         borough: s.borough ?? 'Unknown',
-        placeCount: Number(s.placeCount) || 0,
-        avgIntensity: Math.round(Number(s.avgIntensity) || 0),
-        maxIntensity: Number(s.maxIntensity) || 0,
+        placeCount: s.placeCount,
+        avgIntensity: Math.round(s.avgIntensity),
+        maxIntensity: s.maxIntensity,
         dominantNature: 'mixed', // Would need separate query
-        activeTransformations: Number(s.activeTransformations) || 0,
+        activeTransformations: s.activeTransformations,
       }));
 
     return {
@@ -104,10 +108,10 @@ export const neighborhoodsRoutes: FastifyPluginAsync = async (fastify) => {
       ntaCode: s.ntaCode,
       ntaName: s.ntaName,
       borough: s.borough ?? 'Unknown',
-      placeCount: Number(s.placeCount) || 0,
-      avgIntensity: Math.round(Number(s.avgIntensity) || 0),
-      maxIntensity: Number(s.maxIntensity) || 0,
-      activeTransformations: Number(s.activeTransformations) || 0,
+      placeCount: s.placeCount,
+      avgIntensity: Math.round(s.avgIntensity),
+      maxIntensity: s.maxIntensity,
+      activeTransformations: s.activeTransformations,
       topPlaces: topPlaces.map((p) => ({
         id: p.id,
         address: p.address ?? 'Unknown',

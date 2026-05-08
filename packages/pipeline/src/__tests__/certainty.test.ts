@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { deriveCertainty, getCertaintyOpacity, shouldShowDashedBorder } from '../compute/certainty.js';
+import {
+  deriveCertainty,
+  getCertaintyOpacity,
+  shouldShowDashedBorder,
+} from '../compute/certainty.js';
 import type { RawEvent } from '../db/schema.js';
 
 // Helper to create mock events
@@ -82,7 +86,7 @@ describe('deriveCertainty', () => {
   describe('priority hierarchy', () => {
     it('should prioritize "certain" over "probable"', () => {
       const events = [
-        createEvent('new_building'),         // probable
+        createEvent('new_building'), // probable
         createEvent('construction_started'), // certain
       ];
       expect(deriveCertainty(events)).toBe('certain');
@@ -90,15 +94,15 @@ describe('deriveCertainty', () => {
 
     it('should prioritize "probable" over "discussion"', () => {
       const events = [
-        createEvent('ulurp_filed'),    // discussion
-        createEvent('zap_approved'),   // probable
+        createEvent('ulurp_filed'), // discussion
+        createEvent('zap_approved'), // probable
       ];
       expect(deriveCertainty(events)).toBe('probable');
     });
 
     it('should prioritize "certain" over "discussion"', () => {
       const events = [
-        createEvent('ulurp_filed'),           // discussion
+        createEvent('ulurp_filed'), // discussion
         createEvent('construction_completed'), // certain
       ];
       expect(deriveCertainty(events)).toBe('certain');

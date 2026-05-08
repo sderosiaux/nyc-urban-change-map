@@ -6,14 +6,22 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { db, places, rawEvents, transformationStates, heatmapCells, initializeDatabase, closeDatabase } from '../db/index.js';
-import { normalizeDOBPermit } from '../ingest/dob.js';
-import { normalizeDOBNowJob } from '../ingest/dob-now.js';
-import { normalizeViolation } from '../ingest/dob-violations.js';
-import { normalizeComplaint } from '../ingest/dob-complaints.js';
-import { normalizeZAPProject } from '../ingest/zap.js';
-import { normalizeCapitalProject } from '../ingest/capital.js';
-import { normalizeCEQRProject } from '../ingest/ceqr.js';
+import {
+  db,
+  places,
+  rawEvents,
+  transformationStates,
+  heatmapCells,
+  initializeDatabase,
+  closeDatabase,
+} from '../db/index.js';
+import { type DOBPermit, normalizeDOBPermit } from '../ingest/dob.js';
+import { type DOBNowJob, normalizeDOBNowJob } from '../ingest/dob-now.js';
+import { type DOBViolation, normalizeViolation } from '../ingest/dob-violations.js';
+import { type DOBComplaint, normalizeComplaint } from '../ingest/dob-complaints.js';
+import { type ZAPProject, normalizeZAPProject } from '../ingest/zap.js';
+import { type CapitalProject, normalizeCapitalProject } from '../ingest/capital.js';
+import { type CEQRProject, normalizeCEQRProject } from '../ingest/ceqr.js';
 import { computeTransformationState, toDbInsert } from '../compute/transformation.js';
 import { latLngToCell, cellToLatLng } from 'h3-js';
 
@@ -22,7 +30,7 @@ const FIXTURES_DIR = join(__dirname, '..', '__fixtures__');
 
 function loadFixture<T>(name: string): T[] {
   const content = readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8');
-  return JSON.parse(content);
+  return JSON.parse(content) as T[];
 }
 
 interface NormalizedEvent {
@@ -54,7 +62,7 @@ async function main() {
 
     // DOB Permits
     console.log('  Loading DOB Permits...');
-    const dobPermits = loadFixture<any>('dob-permits');
+    const dobPermits = loadFixture<DOBPermit>('dob-permits');
     for (const raw of dobPermits) {
       const normalized = normalizeDOBPermit(raw);
       if (normalized) {
@@ -77,7 +85,7 @@ async function main() {
 
     // DOB NOW
     console.log('  Loading DOB NOW...');
-    const dobNow = loadFixture<any>('dob-now');
+    const dobNow = loadFixture<DOBNowJob>('dob-now');
     for (const raw of dobNow) {
       const normalized = normalizeDOBNowJob(raw);
       if (normalized) {
@@ -100,7 +108,7 @@ async function main() {
 
     // DOB Violations
     console.log('  Loading DOB Violations...');
-    const violations = loadFixture<any>('dob-violations');
+    const violations = loadFixture<DOBViolation>('dob-violations');
     for (const raw of violations) {
       const normalized = normalizeViolation(raw);
       if (normalized) {
@@ -123,7 +131,7 @@ async function main() {
 
     // DOB Complaints
     console.log('  Loading DOB Complaints...');
-    const complaints = loadFixture<any>('dob-complaints');
+    const complaints = loadFixture<DOBComplaint>('dob-complaints');
     for (const raw of complaints) {
       const normalized = normalizeComplaint(raw);
       if (normalized) {
@@ -146,7 +154,7 @@ async function main() {
 
     // ZAP Projects
     console.log('  Loading ZAP Projects...');
-    const zap = loadFixture<any>('zap');
+    const zap = loadFixture<ZAPProject>('zap');
     for (const raw of zap) {
       const normalized = normalizeZAPProject(raw);
       if (normalized) {
@@ -169,7 +177,7 @@ async function main() {
 
     // Capital Projects
     console.log('  Loading Capital Projects...');
-    const capital = loadFixture<any>('capital');
+    const capital = loadFixture<CapitalProject>('capital');
     for (const raw of capital) {
       const normalized = normalizeCapitalProject(raw);
       if (normalized) {
@@ -192,7 +200,7 @@ async function main() {
 
     // CEQR Projects
     console.log('  Loading CEQR Projects...');
-    const ceqr = loadFixture<any>('ceqr');
+    const ceqr = loadFixture<CEQRProject>('ceqr');
     for (const raw of ceqr) {
       const normalized = normalizeCEQRProject(raw);
       if (normalized) {
@@ -216,24 +224,28 @@ async function main() {
     console.log(`  Loaded ${allEvents.length} events from fixtures`);
 
     // Group events by location (address or bin)
-    const placeMap = new Map<string, {
-      address: string | null;
-      bin: string | null;
-      borough: string | null;
-      latitude: number | null;
-      longitude: number | null;
-      ntaCode: string | null;
-      communityDistrict: string | null;
-      events: NormalizedEvent[];
-    }>();
+    const placeMap = new Map<
+      string,
+      {
+        address: string | null;
+        bin: string | null;
+        borough: string | null;
+        latitude: number | null;
+        longitude: number | null;
+        ntaCode: string | null;
+        communityDistrict: string | null;
+        events: NormalizedEvent[];
+      }
+    >();
 
     for (const event of allEvents) {
       // Use address + borough as key, fallback to bin, fallback to sourceId
-      const key = event.address && event.borough
-        ? `${event.address}-${event.borough}`
-        : event.bin
-          ? `bin-${event.bin}`
-          : `source-${event.source}-${event.sourceId}`;
+      const key =
+        event.address && event.borough
+          ? `${event.address}-${event.borough}`
+          : event.bin
+            ? `bin-${event.bin}`
+            : `source-${event.source}-${event.sourceId}`;
 
       let place = placeMap.get(key);
       if (!place) {
@@ -270,33 +282,42 @@ async function main() {
 
     for (const [, placeData] of placeMap) {
       // Create geometry
-      const geometry = placeData.latitude && placeData.longitude
-        ? { type: 'Point', coordinates: [placeData.longitude, placeData.latitude] }
-        : { type: 'Point', coordinates: [-73.98, 40.75] }; // Default to NYC center
+      const geometry =
+        placeData.latitude && placeData.longitude
+          ? { type: 'Point', coordinates: [placeData.longitude, placeData.latitude] }
+          : { type: 'Point', coordinates: [-73.98, 40.75] }; // Default to NYC center
 
       // Insert place
-      const [place] = await db.insert(places).values({
-        geometryJson: geometry,
-        geometryType: 'point',
-        bin: placeData.bin,
-        address: placeData.address,
-        borough: placeData.borough,
-        ntaCode: placeData.ntaCode,
-        communityDistrict: placeData.communityDistrict,
-        latitude: placeData.latitude ?? 40.75,
-        longitude: placeData.longitude ?? -73.98,
-      }).returning();
+      const inserted = await db
+        .insert(places)
+        .values({
+          geometryJson: geometry,
+          geometryType: 'point',
+          bin: placeData.bin,
+          address: placeData.address,
+          borough: placeData.borough,
+          ntaCode: placeData.ntaCode,
+          communityDistrict: placeData.communityDistrict,
+          latitude: placeData.latitude ?? 40.75,
+          longitude: placeData.longitude ?? -73.98,
+        })
+        .returning();
+      const place = inserted[0];
+      if (!place) {
+        console.error('Failed to insert place, skipping events');
+        continue;
+      }
 
       placeCount++;
 
       // Insert events
       for (const event of placeData.events) {
         await db.insert(rawEvents).values({
-          placeId: place!.id,
+          placeId: place.id,
           source: event.source,
           sourceId: event.sourceId,
           eventType: event.eventType,
-          eventDate: event.eventDate.toISOString().split('T')[0]!,
+          eventDate: event.eventDate.toISOString().split('T')[0] ?? '',
           rawData: event.rawData,
         });
         eventCount++;
@@ -339,13 +360,16 @@ async function main() {
       },
     });
 
-    const cellData = new Map<string, {
-      intensities: number[];
-      natures: string[];
-      count: number;
-      lat: number;
-      lng: number;
-    }>();
+    const cellData = new Map<
+      string,
+      {
+        intensities: number[];
+        natures: string[];
+        count: number;
+        lat: number;
+        lng: number;
+      }
+    >();
 
     for (const place of placesWithStates) {
       if (!place.latitude || !place.longitude || !place.transformationState) {
@@ -409,7 +433,6 @@ async function main() {
     console.log(`  Places: ${placeCount}`);
     console.log(`  Events: ${eventCount}`);
     console.log(`  Heatmap cells: ${cellData.size}`);
-
   } catch (error) {
     console.error('Seeding failed:', error);
     throw error;
@@ -418,7 +441,7 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

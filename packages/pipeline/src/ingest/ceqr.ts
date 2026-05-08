@@ -25,8 +25,8 @@ export interface CEQRProject {
   lead_agency?: string;
   leadagencyname?: string;
   leadagencyacronym?: string;
-  ceqrtype?: string;           // Type I, Type II, Unlisted
-  reviewtype?: string;         // EAS, EIS, etc.
+  ceqrtype?: string; // Type I, Type II, Unlisted
+  reviewtype?: string; // EAS, EIS, etc.
   projectstatus?: string;
   projectcompleted?: string;
   eassubmitteddate?: string;
@@ -58,7 +58,7 @@ export interface NormalizedCEQREvent {
   reviewType: string | null;
   borough: string | null;
   communityDistrict: string | null;
-  latitude: number | null;  // CEQR dataset doesn't have coordinates
+  latitude: number | null; // CEQR dataset doesn't have coordinates
   longitude: number | null;
   rawData: CEQRProject;
 }
@@ -71,8 +71,8 @@ export interface NormalizedCEQREvent {
  * Map CEQR review status to event type
  */
 export function mapCEQRToEventType(project: CEQRProject): EventType | null {
-  const status = project.projectstatus?.toLowerCase() || '';
-  const reviewType = project.reviewtype?.toLowerCase() || '';
+  const status = project.projectstatus?.toLowerCase() ?? '';
+  const reviewType = project.reviewtype?.toLowerCase() ?? '';
 
   // If project is completed
   if (status.includes('complete') || project.projectcompleted) {
@@ -116,10 +116,13 @@ export function mapCEQRToEventType(project: CEQRProject): EventType | null {
  */
 function getCEQRDate(project: CEQRProject): Date | null {
   // Try dates in order of significance
-  const dateStr = project.feissubmitteddate
-    || project.deissubmitteddate
-    || project.eassubmitteddate
-    || project.noaccepteddate;
+  // Use || intentionally: empty string means no date, try next
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  const dateStr =
+    project.feissubmitteddate ||
+    project.deissubmitteddate ||
+    project.eassubmitteddate ||
+    project.noaccepteddate;
 
   if (!dateStr) {
     return null;
@@ -140,19 +143,19 @@ function mapBorough(borough: string | undefined): string | null {
   if (!borough) return null;
 
   const mapping: Record<string, string> = {
-    'MANHATTAN': 'Manhattan',
-    'MN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'BK': 'Brooklyn',
-    'QUEENS': 'Queens',
-    'QN': 'Queens',
+    MANHATTAN: 'Manhattan',
+    MN: 'Manhattan',
+    BRONX: 'Bronx',
+    BX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    BK: 'Brooklyn',
+    QUEENS: 'Queens',
+    QN: 'Queens',
     'STATEN ISLAND': 'Staten Island',
-    'SI': 'Staten Island',
+    SI: 'Staten Island',
   };
 
-  return mapping[borough.toUpperCase()] || borough;
+  return mapping[borough.toUpperCase()] ?? borough;
 }
 
 /**
@@ -161,7 +164,10 @@ function mapBorough(borough: string | undefined): string | null {
  */
 export function normalizeCEQRProject(project: CEQRProject): NormalizedCEQREvent | null {
   // Handle both field name variants
+  // Use || intentionally: empty string means try the other field name
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const ceqrNumber = project.ceqrnumber || project.ceqr;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const projectName = project.projectname || project.project_name;
 
   if (!ceqrNumber || !projectName) {
@@ -185,16 +191,19 @@ export function normalizeCEQRProject(project: CEQRProject): NormalizedCEQREvent 
   return {
     source: 'ceqr',
     sourceId: ceqrNumber,
-    eventType: eventType || 'ceqr_eas',
-    eventDate: eventDate || new Date(),
+    eventType: eventType ?? 'ceqr_eas',
+    eventDate: eventDate ?? new Date(),
     projectName,
+    // Use || intentionally: empty field name means try the other variant
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     projectDescription: project.projectdescription || project.project_description || null,
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     leadAgency: project.leadagencyname || project.lead_agency || null,
-    ceqrType: project.ceqrtype || null,
-    reviewType: project.reviewtype || null,
+    ceqrType: project.ceqrtype ?? null,
+    reviewType: project.reviewtype ?? null,
     borough: mapBorough(project.borough),
-    communityDistrict: project.communitydistrict || null,
-    latitude: null,  // CEQR data doesn't include coordinates
+    communityDistrict: project.communitydistrict ?? null,
+    latitude: null, // CEQR data doesn't include coordinates
     longitude: null,
     rawData: project,
   };
@@ -222,14 +231,14 @@ export async function fetchCEQRProjects(options: {
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.ceqrProjects}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.ceqrProjects}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -239,7 +248,7 @@ export async function fetchCEQRProjects(options: {
       return [];
     }
 
-    return response.json() as Promise<CEQRProject[]>;
+    return (await response.json()) as CEQRProject[];
   } catch (error) {
     console.error('Failed to fetch CEQR projects:', error);
     return [];
@@ -251,7 +260,7 @@ export async function fetchCEQRProjects(options: {
  */
 export async function fetchAllCEQRProjectsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedCEQREvent[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -281,7 +290,7 @@ export async function fetchAllCEQRProjectsSince(
       hasMore = false;
     } else {
       offset += batchSize;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

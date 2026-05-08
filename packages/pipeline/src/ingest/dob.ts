@@ -82,7 +82,7 @@ export async function fetchDOBPermits(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   // Add app token if provided (increases rate limit)
@@ -90,7 +90,7 @@ export async function fetchDOBPermits(options: {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.dobPermits}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.dobPermits}?${params.toString()}`;
 
   const response = await fetch(url, { headers });
 
@@ -116,9 +116,13 @@ function parseUSDate(dateStr: string): Date | null {
   // Try MM/DD/YYYY format
   const parts = dateStr.split('/');
   if (parts.length === 3) {
-    const month = parseInt(parts[0]!, 10) - 1;
-    const day = parseInt(parts[1]!, 10);
-    const year = parseInt(parts[2]!, 10);
+    const monthStr = parts[0];
+    const dayStr = parts[1];
+    const yearStr = parts[2];
+    if (monthStr === undefined || dayStr === undefined || yearStr === undefined) return null;
+    const month = parseInt(monthStr, 10) - 1;
+    const day = parseInt(dayStr, 10);
+    const year = parseInt(yearStr, 10);
     const date = new Date(year, month, day);
     if (!isNaN(date.getTime())) {
       return date;
@@ -146,9 +150,8 @@ export function normalizeDOBPermit(permit: DOBPermit): NormalizedEvent | null {
   }
 
   // Build address
-  const address = permit.house__ && permit.street_name
-    ? `${permit.house__} ${permit.street_name}`.trim()
-    : null;
+  const address =
+    permit.house__ && permit.street_name ? `${permit.house__} ${permit.street_name}`.trim() : null;
 
   // Parse coordinates from gis_* fields
   const latitude = permit.gis_latitude ? parseFloat(permit.gis_latitude) : null;
@@ -164,8 +167,8 @@ export function normalizeDOBPermit(permit: DOBPermit): NormalizedEvent | null {
     borough: mapBorough(permit.borough),
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    ntaCode: permit.gis_nta_name || null,
-    communityDistrict: permit.community_board || null,
+    ntaCode: permit.gis_nta_name ?? null,
+    communityDistrict: permit.community_board ?? null,
     rawData: permit,
   };
 }
@@ -180,13 +183,13 @@ function mapBorough(code: string): string | null {
     '3': 'Brooklyn',
     '4': 'Queens',
     '5': 'Staten Island',
-    'MANHATTAN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'QUEENS': 'Queens',
+    MANHATTAN: 'Manhattan',
+    BRONX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
   };
-  return mapping[code.toUpperCase()] || null;
+  return mapping[code.toUpperCase()] ?? null;
 }
 
 /**
@@ -194,7 +197,7 @@ function mapBorough(code: string): string | null {
  */
 export async function fetchAllDOBPermitsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedEvent[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -228,7 +231,7 @@ export async function fetchAllDOBPermitsSince(
       offset += batchSize;
 
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

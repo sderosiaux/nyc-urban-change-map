@@ -60,9 +60,27 @@ describe('getH3Boundary', () => {
 describe('computeHeatmapCells', () => {
   it('should aggregate places into H3 cells', () => {
     const places = [
-      { id: '1', latitude: 40.758, longitude: -73.9855, intensity: 60, nature: 'densification' as const },
-      { id: '2', latitude: 40.7582, longitude: -73.9853, intensity: 40, nature: 'densification' as const },
-      { id: '3', latitude: 40.6782, longitude: -73.9442, intensity: 80, nature: 'renovation' as const },
+      {
+        id: '1',
+        latitude: 40.758,
+        longitude: -73.9855,
+        intensity: 60,
+        nature: 'densification' as const,
+      },
+      {
+        id: '2',
+        latitude: 40.7582,
+        longitude: -73.9853,
+        intensity: 40,
+        nature: 'densification' as const,
+      },
+      {
+        id: '3',
+        latitude: 40.6782,
+        longitude: -73.9442,
+        intensity: 80,
+        nature: 'renovation' as const,
+      },
     ];
 
     const cells = computeHeatmapCells(places, 8);
@@ -86,9 +104,27 @@ describe('computeHeatmapCells', () => {
 
   it('should compute dominant nature by weighted voting', () => {
     const places = [
-      { id: '1', latitude: 40.758, longitude: -73.9855, intensity: 50, nature: 'densification' as const },
-      { id: '2', latitude: 40.7582, longitude: -73.9853, intensity: 30, nature: 'renovation' as const },
-      { id: '3', latitude: 40.7581, longitude: -73.9854, intensity: 40, nature: 'renovation' as const },
+      {
+        id: '1',
+        latitude: 40.758,
+        longitude: -73.9855,
+        intensity: 50,
+        nature: 'densification' as const,
+      },
+      {
+        id: '2',
+        latitude: 40.7582,
+        longitude: -73.9853,
+        intensity: 30,
+        nature: 'renovation' as const,
+      },
+      {
+        id: '3',
+        latitude: 40.7581,
+        longitude: -73.9854,
+        intensity: 40,
+        nature: 'renovation' as const,
+      },
     ];
 
     const cells = computeHeatmapCells(places, 8);
@@ -106,7 +142,13 @@ describe('computeHeatmapCells', () => {
 
   it('should include H3 boundary in each cell', () => {
     const places = [
-      { id: '1', latitude: 40.758, longitude: -73.9855, intensity: 60, nature: 'densification' as const },
+      {
+        id: '1',
+        latitude: 40.758,
+        longitude: -73.9855,
+        intensity: 60,
+        nature: 'densification' as const,
+      },
     ];
 
     const cells = computeHeatmapCells(places, 8);

@@ -19,6 +19,7 @@ export default tseslint.config(
       'packages/shared/dist/**',
       '**/*.config.js',
       '**/*.config.ts',
+      'eslint.config.js',
     ],
   },
   js.configs.recommended,
@@ -36,41 +37,19 @@ export default tseslint.config(
       },
     },
     rules: {
-      // Allow underscore-prefixed unused vars (warn to not block existing code)
+      // Allow underscore-prefixed unused vars (pipeline scripts use _ patterns)
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
-      // Pragmatic relaxations for an existing codebase — surface as warnings, not errors
+      // Specific relaxations that have strong justification
       '@typescript-eslint/restrict-template-expressions': [
-        'warn',
+        'error',
         { allowNumber: true, allowBoolean: true, allowNullish: true, allowAny: true },
       ],
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
-      '@typescript-eslint/no-confusing-void-expression': 'warn',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-      '@typescript-eslint/return-await': 'warn',
-      '@typescript-eslint/require-await': 'warn',
-      '@typescript-eslint/no-misused-promises': 'warn',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unnecessary-type-conversion': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-redundant-type-constituents': 'warn',
-      '@typescript-eslint/no-base-to-string': 'warn',
-      // Pragmatic warns for existing codebase
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'warn',
-      '@typescript-eslint/use-unknown-in-catch-callback-variable': 'warn',
-      '@typescript-eslint/restrict-plus-operands': 'warn',
+      // Conflicts with no-non-null-assertion — we prefer no !
+      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
-      // react-hooks/preserve-manual-memoization is informational, not a bug
-      'react-hooks/preserve-manual-memoization': 'off',
     },
   },
   // React-specific rules for the web package
@@ -83,14 +62,9 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      // Compiler-style rules from react-hooks v7 — too noisy on existing code
-      'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/refs': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/error-boundaries': 'warn',
     },
   },
-  // Test files: looser
+  // Test files: no-any, no-unsafe-*, no-non-null-assertion off
   {
     files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '**/__tests__/**'],
     rules: {
@@ -101,6 +75,17 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
+    },
+  },
+  // Pipeline scripts: no-console OK
+  {
+    files: ['packages/pipeline/scripts/**/*.ts', 'packages/pipeline/src/jobs/**/*.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 );

@@ -47,7 +47,7 @@ export function getH3Boundary(h3Index: string): number[][] {
  */
 export function computeHeatmapCells(
   places: PlaceForHeatmap[],
-  resolution: number
+  resolution: number,
 ): HeatmapCellData[] {
   if (places.length === 0) return [];
 
@@ -68,8 +68,8 @@ export function computeHeatmapCells(
     const boundary = getH3Boundary(h3Index);
 
     // Compute center (average of boundary vertices)
-    const centerLat = boundary.reduce((sum, v) => sum + v[1]!, 0) / boundary.length;
-    const centerLng = boundary.reduce((sum, v) => sum + v[0]!, 0) / boundary.length;
+    const centerLat = boundary.reduce((sum, v) => sum + (v[1] ?? 0), 0) / boundary.length;
+    const centerLng = boundary.reduce((sum, v) => sum + (v[0] ?? 0), 0) / boundary.length;
 
     // Compute intensity stats
     const intensities = cellPlaces.map((p) => p.intensity);
@@ -107,7 +107,7 @@ function computeDominantNature(places: PlaceForHeatmap[]): TransformationNature 
   };
 
   for (const place of places) {
-    const weight = NATURE_WEIGHTS[place.nature] ?? 1;
+    const weight = NATURE_WEIGHTS[place.nature];
     scores[place.nature] += weight;
   }
 

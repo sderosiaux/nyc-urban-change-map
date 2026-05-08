@@ -5,7 +5,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db, places, transformationStates } from '@ucm/pipeline';
-import { eq, ilike, and, gte, sql } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 
 const querySchema = z.object({
   q: z.string().min(2),
@@ -25,12 +25,13 @@ interface SearchResult {
   intensity?: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export const searchRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /search - Search for places by address or neighborhood
    */
-  fastify.get('/', async (request, reply) => {
-    const { q, radius, limit } = querySchema.parse(request.query);
+  fastify.get('/', async (request, _reply) => {
+    const { q, limit } = querySchema.parse(request.query);
 
     const searchTerm = `%${q}%`;
 
@@ -71,7 +72,7 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Combine and format results
     const results: SearchResult[] = [
-      ...placeResults.map(p => ({
+      ...placeResults.map((p) => ({
         id: p.id,
         type: 'place' as const,
         name: p.address ?? 'Unknown address',
@@ -82,7 +83,7 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
         longitude: p.longitude ?? 0,
         intensity: p.intensity ?? undefined,
       })),
-      ...neighborhoodResults.map(p => ({
+      ...neighborhoodResults.map((p) => ({
         id: p.id,
         type: 'neighborhood' as const,
         name: p.ntaName ?? 'Unknown neighborhood',
@@ -96,9 +97,7 @@ export const searchRoutes: FastifyPluginAsync = async (fastify) => {
     ];
 
     // Remove duplicates
-    const uniqueResults = results.filter((r, i, arr) =>
-      arr.findIndex(x => x.id === r.id) === i
-    );
+    const uniqueResults = results.filter((r, i, arr) => arr.findIndex((x) => x.id === r.id) === i);
 
     return {
       query: q,

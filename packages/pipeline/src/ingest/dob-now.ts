@@ -96,14 +96,14 @@ export async function fetchDOBNowJobs(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.dobNow}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.dobNow}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -113,7 +113,7 @@ export async function fetchDOBNowJobs(options: {
       return [];
     }
 
-    return response.json() as Promise<DOBNowJob[]>;
+    return (await response.json()) as DOBNowJob[];
   } catch (error) {
     console.error('Failed to fetch DOB NOW jobs:', error);
     return [];
@@ -130,13 +130,13 @@ function mapBorough(code: string): string | null {
     '3': 'Brooklyn',
     '4': 'Queens',
     '5': 'Staten Island',
-    'MANHATTAN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'QUEENS': 'Queens',
+    MANHATTAN: 'Manhattan',
+    BRONX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
   };
-  return mapping[code?.toUpperCase()] || null;
+  return mapping[code.toUpperCase()] ?? null;
 }
 
 /**
@@ -161,6 +161,8 @@ export function normalizeDOBNowJob(job: DOBNowJob): NormalizedDOBNowEvent | null
   const eventType = getEventTypeFromJob(job);
 
   // Parse date - use current_status_date, fallback to filing_date
+  // Use || intentionally: empty string means no date, try next
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const dateStr = job.current_status_date || job.filing_date || job.first_permit_date;
 
   // Must have a valid date
@@ -170,9 +172,8 @@ export function normalizeDOBNowJob(job: DOBNowJob): NormalizedDOBNowEvent | null
   }
 
   // Build address
-  const address = job.house_no && job.street_name
-    ? `${job.house_no} ${job.street_name}`.trim()
-    : null;
+  const address =
+    job.house_no && job.street_name ? `${job.house_no} ${job.street_name}`.trim() : null;
 
   // Parse coordinates
   const latitude = job.latitude ? parseFloat(job.latitude) : null;
@@ -183,14 +184,14 @@ export function normalizeDOBNowJob(job: DOBNowJob): NormalizedDOBNowEvent | null
     sourceId: job.job_filing_number,
     eventType,
     eventDate,
-    bin: job.bin || null,
+    bin: job.bin ?? null,
     address,
     borough: mapBorough(job.borough),
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    ntaCode: job.nta || null,
-    communityDistrict: job.commmunity_board || null,
-    jobStatus: job.filing_status || null,
+    ntaCode: job.nta ?? null,
+    communityDistrict: job.commmunity_board ?? null,
+    jobStatus: job.filing_status ?? null,
     rawData: job,
   };
 }
@@ -200,7 +201,7 @@ export function normalizeDOBNowJob(job: DOBNowJob): NormalizedDOBNowEvent | null
  */
 export async function fetchAllDOBNowJobsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedDOBNowEvent[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -230,7 +231,7 @@ export async function fetchAllDOBNowJobsSince(
       hasMore = false;
     } else {
       offset += batchSize;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

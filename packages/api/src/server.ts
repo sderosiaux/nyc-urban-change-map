@@ -36,7 +36,7 @@ async function main() {
   await server.register(sensible);
 
   // Health check
-  server.get('/health', async () => {
+  server.get('/health', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
@@ -49,7 +49,7 @@ async function main() {
   // Start server
   try {
     await server.listen({ port: PORT, host: HOST });
-    console.log(`Server running at http://${HOST}:${PORT}`);
+    server.log.info(`Server running at http://${HOST}:${PORT}`);
   } catch (error) {
     server.log.error(error);
     process.exit(1);
@@ -58,12 +58,12 @@ async function main() {
   // Graceful shutdown
   const signals = ['SIGINT', 'SIGTERM'];
   for (const signal of signals) {
-    process.on(signal, async () => {
-      console.log(`Received ${signal}, shutting down...`);
-      await server.close();
+    process.on(signal, () => {
+      server.log.info(`Received ${signal}, shutting down...`);
+      void server.close();
       process.exit(0);
     });
   }
 }
 
-main();
+void main();

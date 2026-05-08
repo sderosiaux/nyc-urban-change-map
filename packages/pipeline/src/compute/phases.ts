@@ -23,8 +23,8 @@ export interface ImpactPhases {
   isEstimatedStart: boolean;
   isEstimatedEnd: boolean;
   // Additional milestone dates
-  approvalDate: Date | null;      // ZAP completed_date
-  permitExpiration: Date | null;  // DOB expiration_date
+  approvalDate: Date | null; // ZAP completed_date
+  permitExpiration: Date | null; // DOB expiration_date
   // Derived status
   projectStatus: ProjectStatus;
 }
@@ -152,15 +152,16 @@ function findBestStartDate(events: RawEvent[]): ExtractedDate | null {
   }
 
   // 4. Last resort: Use event date of permit-type events as estimated start
-  const permitEvents = events.filter(e =>
-    ['new_building', 'major_alteration', 'demolition'].includes(e.eventType)
-  ).sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  const permitEvents = events
+    .filter((e) => ['new_building', 'major_alteration', 'demolition'].includes(e.eventType))
+    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
 
-  if (permitEvents.length > 0) {
+  const firstPermit = permitEvents[0];
+  if (firstPermit) {
     return {
-      date: new Date(permitEvents[0]!.eventDate),
+      date: new Date(firstPermit.eventDate),
       isEstimated: true,
-      source: `${permitEvents[0]!.eventType} event date (estimated)`,
+      source: `${firstPermit.eventType} event date (estimated)`,
     };
   }
 
@@ -205,9 +206,12 @@ function findBestEndDate(events: RawEvent[]): ExtractedDate | null {
     // DOB permits: Look for actual completion-related fields
     if (source === 'dob') {
       // Check for fields that indicate actual completion
-      const completionField = rawData['fully_permitted_date'] ||
-                             rawData['certificate_of_occupancy_date'] ||
-                             rawData['signoff_date'];
+      // Use || intentionally: both empty string and null/undefined should fall through
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      const completionField =
+        rawData['fully_permitted_date'] ||
+        rawData['certificate_of_occupancy_date'] ||
+        rawData['signoff_date'];
       if (completionField) {
         const date = parseDate(completionField);
         if (date) {
@@ -229,7 +233,7 @@ function findBestEndDate(events: RawEvent[]): ExtractedDate | null {
 // =============================================================================
 
 function findEventByType(events: RawEvent[], eventType: string): RawEvent | null {
-  return events.find(e => e.eventType === eventType) ?? null;
+  return events.find((e) => e.eventType === eventType) ?? null;
 }
 
 function parseDate(value: unknown): Date | null {
@@ -362,8 +366,8 @@ function deriveProjectStatus(phases: ImpactPhases, events: RawEvent[]): ProjectS
   }
 
   // Check for any permit activity (indicates more than just planning)
-  const hasPermit = events.some(e =>
-    ['new_building', 'major_alteration', 'demolition'].includes(e.eventType)
+  const hasPermit = events.some((e) =>
+    ['new_building', 'major_alteration', 'demolition'].includes(e.eventType),
   );
   if (hasPermit) {
     return 'approved'; // Has permit = approved

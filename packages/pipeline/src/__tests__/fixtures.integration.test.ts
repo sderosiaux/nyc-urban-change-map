@@ -36,12 +36,13 @@ describe('Fixture Integration Tests', () => {
     });
 
     it('should have expected record counts for active datasets', () => {
-      const activeDatasets = Object.entries(metadata.datasets)
-        .filter(([_, ds]: [string, any]) => ds.status === 'active');
+      const activeDatasets = Object.entries(metadata.datasets).filter(
+        ([_, ds]: [string, any]) => ds.status === 'active',
+      );
 
       expect(activeDatasets.length).toBe(9);
 
-      for (const [key, ds] of activeDatasets as [string, any][]) {
+      for (const [_key, ds] of activeDatasets as [string, any][]) {
         expect(ds.recordCount).toBeGreaterThan(0);
         expect(ds.id).toMatch(/^[a-z0-9]{4}-[a-z0-9]{4}$/);
       }

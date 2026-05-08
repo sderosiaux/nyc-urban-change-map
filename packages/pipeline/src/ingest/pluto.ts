@@ -18,11 +18,11 @@ export interface PLUTORecord {
   borough: string;
   block?: string;
   lot?: string;
-  cd?: string;                    // Community District
-  ct2010?: string;                // Census Tract 2010
-  cb2010?: string;                // Census Block 2010
+  cd?: string; // Community District
+  ct2010?: string; // Census Tract 2010
+  cb2010?: string; // Census Block 2010
   schooldist?: string;
-  council?: string;               // City Council District
+  council?: string; // City Council District
   zipcode?: string;
   firecomp?: string;
   policeprct?: string;
@@ -30,37 +30,37 @@ export interface PLUTORecord {
   sanitboro?: string;
   sanitsub?: string;
   address?: string;
-  zonedist1?: string;             // Primary zoning district
+  zonedist1?: string; // Primary zoning district
   zonedist2?: string;
   zonedist3?: string;
   zonedist4?: string;
   overlay1?: string;
   overlay2?: string;
-  spdist1?: string;               // Special purpose district
+  spdist1?: string; // Special purpose district
   spdist2?: string;
   spdist3?: string;
-  ltdheight?: string;             // Limited height district
+  ltdheight?: string; // Limited height district
   splitzone?: string;
-  bldgclass?: string;             // Building class
-  landuse?: string;               // Land use category
+  bldgclass?: string; // Building class
+  landuse?: string; // Land use category
   easession?: string;
   ownertype?: string;
   ownername?: string;
-  lotarea?: string;               // Lot area in sq ft
-  bldgarea?: string;              // Building area in sq ft
-  comarea?: string;               // Commercial area
-  resarea?: string;               // Residential area
+  lotarea?: string; // Lot area in sq ft
+  bldgarea?: string; // Building area in sq ft
+  comarea?: string; // Commercial area
+  resarea?: string; // Residential area
   officearea?: string;
   retailarea?: string;
   garagearea?: string;
-  strgearea?: string;             // Storage area
+  strgearea?: string; // Storage area
   factryarea?: string;
   otherarea?: string;
   areasource?: string;
-  numbldgs?: string;              // Number of buildings
-  numfloors?: string;             // Number of floors
-  unitsres?: string;              // Residential units
-  unitstotal?: string;            // Total units
+  numbldgs?: string; // Number of buildings
+  numfloors?: string; // Number of floors
+  unitsres?: string; // Residential units
+  unitstotal?: string; // Total units
   lotfront?: string;
   lotdepth?: string;
   bldgfront?: string;
@@ -70,18 +70,18 @@ export interface PLUTORecord {
   irrlotcode?: string;
   lottype?: string;
   bsmtcode?: string;
-  assessland?: string;            // Assessed land value
-  assesstot?: string;             // Assessed total value
+  assessland?: string; // Assessed land value
+  assesstot?: string; // Assessed total value
   exempttot?: string;
-  yearbuilt?: string;             // Year built
-  yearalter1?: string;            // Year of alteration 1
-  yearalter2?: string;            // Year of alteration 2
-  histdist?: string;              // Historic district
+  yearbuilt?: string; // Year built
+  yearalter1?: string; // Year of alteration 1
+  yearalter2?: string; // Year of alteration 2
+  histdist?: string; // Historic district
   landmark?: string;
-  builtfar?: string;              // Built FAR
-  residfar?: string;              // Residential FAR
-  commfar?: string;               // Commercial FAR
-  facilfar?: string;              // Facility FAR
+  builtfar?: string; // Built FAR
+  residfar?: string; // Residential FAR
+  commfar?: string; // Commercial FAR
+  facilfar?: string; // Facility FAR
   boession?: string;
   borocode?: string;
   condession?: string;
@@ -191,14 +191,14 @@ export async function fetchPLUTORecords(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pluto}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pluto}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -208,7 +208,7 @@ export async function fetchPLUTORecords(options: {
       return [];
     }
 
-    return response.json() as Promise<PLUTORecord[]>;
+    return (await response.json()) as PLUTORecord[];
   } catch (error) {
     console.error('Failed to fetch PLUTO records:', error);
     return [];
@@ -220,13 +220,13 @@ export async function fetchPLUTORecords(options: {
  */
 function mapBorough(code: string): string | null {
   const mapping: Record<string, string> = {
-    'MN': 'Manhattan',
-    'BX': 'Bronx',
-    'BK': 'Brooklyn',
-    'QN': 'Queens',
-    'SI': 'Staten Island',
+    MN: 'Manhattan',
+    BX: 'Bronx',
+    BK: 'Brooklyn',
+    QN: 'Queens',
+    SI: 'Staten Island',
   };
-  return mapping[code?.toUpperCase()] || null;
+  return mapping[code.toUpperCase()] ?? null;
 }
 
 /**
@@ -247,7 +247,7 @@ export function normalizePLUTO(record: PLUTORecord): NormalizedPLUTO | null {
   }
 
   // Clean BBL - remove decimals if present (API returns "4110150001.00000000")
-  const bbl = record.bbl.split('.')[0] || record.bbl;
+  const bbl = record.bbl.split('.')[0] ?? record.bbl;
 
   const latitude = parseNumber(record.latitude);
   const longitude = parseNumber(record.longitude);
@@ -255,18 +255,18 @@ export function normalizePLUTO(record: PLUTORecord): NormalizedPLUTO | null {
   return {
     bbl,
     borough: mapBorough(record.borough),
-    address: record.address || null,
+    address: record.address ?? null,
     latitude,
     longitude,
-    communityDistrict: record.cd || null,
-    zipCode: record.zipcode || null,
+    communityDistrict: record.cd ?? null,
+    zipCode: record.zipcode ?? null,
 
     // Zoning
-    primaryZoning: record.zonedist1 || null,
-    overlay: record.overlay1 || null,
-    specialDistrict: record.spdist1 || null,
-    landUse: record.landuse ? LAND_USE_CODES[record.landuse] || record.landuse : null,
-    buildingClass: record.bldgclass || null,
+    primaryZoning: record.zonedist1 ?? null,
+    overlay: record.overlay1 ?? null,
+    specialDistrict: record.spdist1 ?? null,
+    landUse: record.landuse ? (LAND_USE_CODES[record.landuse] ?? record.landuse) : null,
+    buildingClass: record.bldgclass ?? null,
 
     // Building characteristics
     yearBuilt: parseNumber(record.yearbuilt),
@@ -302,7 +302,7 @@ export function normalizePLUTO(record: PLUTORecord): NormalizedPLUTO | null {
  */
 export async function fetchAllPLUTOForBorough(
   borough: string,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedPLUTO[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -332,7 +332,7 @@ export async function fetchAllPLUTOForBorough(
       hasMore = false;
     } else {
       offset += batchSize;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
@@ -344,7 +344,7 @@ export async function fetchAllPLUTOForBorough(
  */
 export async function fetchPLUTOByBBL(
   bbl: string,
-  options: { appToken?: string } = {}
+  options: { appToken?: string } = {},
 ): Promise<NormalizedPLUTO | null> {
   const { appToken } = options;
 
@@ -354,14 +354,14 @@ export async function fetchPLUTOByBBL(
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pluto}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pluto}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -370,12 +370,14 @@ export async function fetchPLUTOByBBL(
       return null;
     }
 
-    const records = await response.json() as PLUTORecord[];
+    const records = (await response.json()) as PLUTORecord[];
     if (records.length === 0) {
       return null;
     }
+    const firstRecord = records[0];
+    if (!firstRecord) return null;
 
-    return normalizePLUTO(records[0]!);
+    return normalizePLUTO(firstRecord);
   } catch {
     return null;
   }

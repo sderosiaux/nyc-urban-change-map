@@ -12,7 +12,7 @@ import {
   closeDatabase,
   initializeDatabase,
 } from '../db/index.js';
-import { fetchAllDOBPermitsSince, type NormalizedEvent } from '../ingest/dob.js';
+import { type NormalizedEvent } from '../ingest/dob.js';
 import { fetchAllDOBNowJobsSince, type NormalizedDOBNowEvent } from '../ingest/dob-now.js';
 import { fetchAllZAPProjectsWithCoordinates, type NormalizedZAPEvent } from '../ingest/zap.js';
 import { fetchAllCapitalProjectsSince, type NormalizedCapitalEvent } from '../ingest/capital.js';
@@ -106,6 +106,8 @@ const DATA_SOURCES: DataSourceConfig[] = [
 ];
 
 // Minimum hours between syncs for the same source (default 12h, data updates ~daily)
+// Use || intentionally: empty env var should use default
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 const MIN_SYNC_INTERVAL_HOURS = parseInt(process.env['MIN_SYNC_INTERVAL_HOURS'] || '12', 10);
 
 async function ingestDataSource(
@@ -224,7 +226,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Starting data ingestion for ${filterSource || 'all sources'}...`);
+  console.log(`Starting data ingestion for ${filterSource ?? 'all sources'}...`);
   if (forceSync) {
     console.log('Force sync enabled - ignoring sync interval threshold');
   }
@@ -441,14 +443,14 @@ async function processBatch(events: AnyNormalizedEvent[]): Promise<void> {
         source: event.source,
         sourceId: event.sourceId,
         eventType: meta.eventType,
-        eventDate: meta.eventDate.toISOString().split('T')[0]!,
+        eventDate: meta.eventDate.toISOString().split('T')[0] ?? '',
         rawData: event.rawData,
       })
       .onConflictDoNothing();
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

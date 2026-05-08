@@ -19,7 +19,7 @@ export function computeIntensity(events: RawEvent[]): number {
 
   for (const event of events) {
     const eventType = event.eventType as EventType;
-    const weight = INTENSITY_WEIGHTS[eventType] ?? 0;
+    const weight = INTENSITY_WEIGHTS[eventType];
 
     // Minor alterations (A2) are cumulative - each one adds to score
     if (eventType === 'minor_alteration') {
@@ -49,8 +49,8 @@ export function getIntensityLabel(intensity: number): string {
  * Get CSS color for intensity visualization
  */
 export function getIntensityColor(intensity: number): string {
-  if (intensity < 30) return '#94a3b8';  // slate-400
-  if (intensity < 60) return '#fbbf24';  // amber-400
-  if (intensity < 80) return '#f97316';  // orange-500
-  return '#dc2626';  // red-600
+  if (intensity < 30) return '#94a3b8'; // slate-400
+  if (intensity < 60) return '#fbbf24'; // amber-400
+  if (intensity < 80) return '#f97316'; // orange-500
+  return '#dc2626'; // red-600
 }

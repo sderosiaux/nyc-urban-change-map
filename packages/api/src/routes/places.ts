@@ -4,9 +4,16 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { db, places, transformationStates, rawEvents } from '@ucm/pipeline';
+import { db, places, rawEvents } from '@ucm/pipeline';
 import { eq } from 'drizzle-orm';
-import type { PlaceDetail, SourceSummary, TransformationNature, Certainty, ProjectStatus, PropertyDetails } from '@ucm/shared';
+import type {
+  PlaceDetail,
+  SourceSummary,
+  TransformationNature,
+  Certainty,
+  ProjectStatus,
+  PropertyDetails,
+} from '@ucm/shared';
 
 // DOB NOW API response types
 interface DobNowPw1Item {
@@ -78,6 +85,7 @@ const querySchema = z.object({
   expand: z.string().optional(),
 });
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export const placesRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /places/:id - Get place details with transformation state
@@ -109,31 +117,33 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
         borough: place.borough ?? 'Unknown',
       },
       geometry: place.geometryJson as PlaceDetail['geometry'],
-      transformation: state ? {
-        intensity: state.intensity ?? 0,
-        nature: (state.nature ?? 'mixed') as TransformationNature,
-        certainty: (state.certainty ?? 'discussion') as Certainty,
-        headline: state.headline ?? undefined,
-        oneLiner: state.oneLiner ?? undefined,
-        disruptionSummary: state.disruptionSummary ?? undefined,
-        // Timeline dates
-        disruptionStart: state.disruptionStart ?? undefined,
-        disruptionEnd: state.disruptionEnd ?? undefined,
-        visibleChangeDate: state.visibleChangeDate ?? undefined,
-        usageChangeDate: state.usageChangeDate ?? undefined,
-        // Data quality flags
-        isEstimatedStart: state.isEstimatedStart === 1,
-        isEstimatedEnd: state.isEstimatedEnd === 1,
-        // Milestone dates
-        approvalDate: state.approvalDate ?? undefined,
-        permitExpiration: state.permitExpiration ?? undefined,
-        // Project status
-        projectStatus: (state.projectStatus ?? 'planning') as ProjectStatus,
-        // Activity info
-        eventCount: state.eventCount ?? 0,
-        firstActivity: state.firstActivity ?? undefined,
-        lastActivity: state.lastActivity ?? undefined,
-      } : undefined,
+      transformation: state
+        ? {
+            intensity: state.intensity,
+            nature: (state.nature ?? 'mixed') as TransformationNature,
+            certainty: state.certainty as Certainty,
+            headline: state.headline ?? undefined,
+            oneLiner: state.oneLiner ?? undefined,
+            disruptionSummary: state.disruptionSummary ?? undefined,
+            // Timeline dates
+            disruptionStart: state.disruptionStart ?? undefined,
+            disruptionEnd: state.disruptionEnd ?? undefined,
+            visibleChangeDate: state.visibleChangeDate ?? undefined,
+            usageChangeDate: state.usageChangeDate ?? undefined,
+            // Data quality flags
+            isEstimatedStart: state.isEstimatedStart === 1,
+            isEstimatedEnd: state.isEstimatedEnd === 1,
+            // Milestone dates
+            approvalDate: state.approvalDate ?? undefined,
+            permitExpiration: state.permitExpiration ?? undefined,
+            // Project status
+            projectStatus: (state.projectStatus ?? 'planning') as ProjectStatus,
+            // Activity info
+            eventCount: state.eventCount ?? 0,
+            firstActivity: state.firstActivity ?? undefined,
+            lastActivity: state.lastActivity ?? undefined,
+          }
+        : undefined,
     };
 
     // Include sources if requested
@@ -158,10 +168,10 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
           // Build complaint details for dob-complaints sources
           let complaintDetails: SourceSummary['complaintDetails'];
           if (event.source === 'dob-complaints' && rawData) {
-            const categoryCode = (rawData['complaint_category'] as string) ?? '';
-            const dispositionCode = (rawData['disposition_code'] as string) ?? '';
+            const categoryCode = (rawData['complaint_category'] as string | undefined) ?? '';
+            const dispositionCode = (rawData['disposition_code'] as string | undefined) ?? '';
             complaintDetails = {
-              status: (rawData['status'] as string) ?? 'UNKNOWN',
+              status: (rawData['status'] as string | undefined) ?? 'UNKNOWN',
               category: COMPLAINT_CATEGORIES[categoryCode] ?? `Category ${categoryCode}`,
               categoryCode,
               disposition: DISPOSITION_CODES[dispositionCode] ?? dispositionCode,
@@ -177,12 +187,18 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
             const actionsStr = rawData['actions'] as string | undefined;
             const ulurpNumbersStr = rawData['ulurp_numbers'] as string | undefined;
             zapDetails = {
-              projectName: (rawData['project_name'] as string) ?? 'ZAP Project',
+              projectName: (rawData['project_name'] as string | undefined) ?? 'ZAP Project',
               projectBrief: rawData['project_brief'] as string | undefined,
-              publicStatus: (rawData['public_status'] as string) ?? 'Unknown',
+              publicStatus: (rawData['public_status'] as string | undefined) ?? 'Unknown',
               isUlurp: rawData['ulurp_non'] === 'ULURP',
-              actions: actionsStr?.split(';').map(s => s.trim()).filter(Boolean),
-              ulurpNumbers: ulurpNumbersStr?.split(';').map(s => s.trim()).filter(Boolean),
+              actions: actionsStr
+                ?.split(';')
+                .map((s) => s.trim())
+                .filter(Boolean),
+              ulurpNumbers: ulurpNumbersStr
+                ?.split(';')
+                .map((s) => s.trim())
+                .filter(Boolean),
               ceqrNumber: rawData['ceqr_number'] as string | undefined,
               currentMilestone: rawData['current_milestone'] as string | undefined,
               currentMilestoneDate: rawData['current_milestone_date'] as string | undefined,
@@ -199,14 +215,14 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
             description: formatEventDescription(event),
             agency: getAgency(rawData, event.source),
             projectType: getProjectType(rawData, event.source),
-            filedDate: event.eventDate ?? undefined,
+            filedDate: event.eventDate,
             dateLabel: getDateLabel(event.source),
             officialUrl: getOfficialUrl(event),
             dobNowDetails,
             complaintDetails,
             zapDetails,
           };
-        })
+        }),
       );
 
       // Extract BIN from sources (either from rawData or dobNowDetails)
@@ -220,7 +236,7 @@ export const placesRoutes: FastifyPluginAsync = async (fastify) => {
       }
       // Fallback: get BIN from DOB NOW enrichment
       if (!bin) {
-        const sourceWithBin = response.sources?.find(s => s.dobNowDetails?.bin);
+        const sourceWithBin = response.sources.find((s) => s.dobNowDetails?.bin);
         bin = sourceWithBin?.dobNowDetails?.bin;
       }
 
@@ -479,166 +495,166 @@ const COMPLAINT_CATEGORIES: Record<string, string> = {
 
 // DOB Complaint disposition codes - full list from NYC Open Data
 const DISPOSITION_CODES: Record<string, string> = {
-  'A1': 'Violation(s) Served',
-  'A2': 'Criminal Court Summons Served',
-  'A3': 'Full Stop Work Order',
-  'A4': 'Violation & Criminal Summons',
-  'A5': 'Violation & Criminal Summons',
-  'A6': 'Vacant/Unguarded - Violation Issued',
-  'A7': 'Accepted by Padlock Unit',
-  'A8': 'ECB Violation Served',
-  'A9': 'ECB & DOB Violations Served',
-  'AF': 'Action Filed',
-  'B1': 'Violation Prepared - To Be Served',
-  'B2': 'ECB Violation Prepared - To Be Served',
-  'C1': 'No Access - 1st Attempt',
-  'C2': 'No Access - 2nd Attempt',
-  'C3': 'Access Denied - 1st Attempt',
-  'C4': 'Access Denied - 2nd Attempt',
-  'C5': 'After Work: No Access - 1st',
-  'C6': 'After Work: Access Denied - 1st',
-  'C7': 'After Work: No Access - 2nd',
-  'C8': 'After Work: Access Denied - 2nd',
-  'D1': 'Assigned to Construction',
-  'D2': 'Assigned to Plumbing',
-  'D3': 'Assigned to Elevator',
-  'D4': 'Assigned to BEST Squad',
-  'D5': 'Assigned to Emergency Response',
-  'D6': 'Assigned to Boiler',
-  'D7': 'Assigned to Cranes & Derricks',
-  'D8': 'Assigned to Executive Inspections',
-  'D9': 'Assigned to Electrical',
-  'E1': 'Assigned to Building Marshal',
-  'E2': 'Assigned to Padlock Unit',
-  'E3': 'Assigned to Boro Office',
-  'E4': 'Assigned to Handicap Access',
-  'E5': 'Assigned for Re-evaluation',
-  'E6': 'Assigned to Special Operations',
-  'E7': 'Assigned to Scaffold Safety',
-  'E8': 'Assigned to Excavation Audits',
-  'E9': 'Assigned to Stalled Sites',
-  'EA': 'Assigned to Interior Demo',
-  'EB': 'Assigned to Facade Program',
-  'EC': 'Assigned to Compromised Buildings',
-  'ED': 'Assigned to Retaining Walls',
-  'EE': 'Reassigned for Review',
-  'EZ': 'Assigned to DOI',
-  'F1': 'Referred to DEP',
-  'F2': 'Referred to DHCR',
-  'F3': 'Referred to Health Dept',
-  'F4': 'Referred for Review',
-  'F5': 'Referred to Sanitation',
-  'F6': 'Referred to DOT',
-  'F7': 'Referred to Real Property',
-  'F8': 'Referred to HPD',
-  'F9': 'Referred to HUD',
-  'G1': 'Referred to Inspector General',
-  'G2': 'Referred to Parks',
-  'G3': 'Referred to TLC',
-  'G4': 'Referred to Consumer Affairs',
-  'G5': 'Referred to NYPD',
-  'G6': 'Referred to FDNY',
-  'G7': 'Referred to Special Enforcement',
-  'G8': 'Referred to NYCHA',
-  'G9': 'Referred to DCAS',
-  'H1': 'See Other Complaint',
-  'H2': 'Previously Inspected',
-  'H3': 'Violation for Disobeying SWO',
-  'H4': 'Summons for Disobeying SWO',
-  'H5': 'Stop All Work - No TCAO',
-  'I1': 'Unsubstantiated by Records',
-  'I2': 'No Violation Warranted',
-  'I3': 'Compliance Inspection Done',
-  'J1': 'Follow-up Pending Research',
-  'J2': 'Resolved by Periodic Inspection',
-  'J3': 'Reviewed - Inspection Scheduled',
-  'J4': 'Follow-up for Hazard Scheduled',
-  'K1': 'Unable to Locate Address',
-  'K2': 'Address Invalid',
-  'K3': 'Cranes - No Address',
-  'K4': 'Cranes - SWO No Address',
-  'K5': 'Letter of Deficiency Issued',
-  'K6': 'Deficiency + Partial SWO',
-  'K7': 'Correction Notification Received',
-  'K8': 'Correction Verified',
-  'L1': 'Partial Stop Work Order',
-  'L2': 'Stop Work Fully Rescinded',
-  'L3': 'Stop Work Partially Rescinded',
-  'M1': 'Bike Access: Elevator OK',
-  'M3': 'Bike Access: Parking Met',
-  'M4': 'Bike Access: Parking Not Met',
-  'MA': 'MARCH: No Enforcement',
-  'MB': 'MARCH: Failure to Maintain',
-  'MC': 'MARCH: Contrary to Plans',
-  'MD': 'MARCH: Exit Obstructed',
-  'ME': 'MARCH: Exit Obstructed + Vacate',
-  'MF': 'MARCH: Exit + Partial Vacate',
-  'MG': 'MARCH: Occupancy Violation',
-  'MH': 'MARCH: No PA Permit + Vacate',
-  'MI': 'MARCH: No PA + Partial Vacate',
-  'MJ': 'MARCH: Work Without Permit',
-  'MK': 'MARCH: No PA Permit',
-  'ND': 'Notice of Deficiency',
-  'P1': 'Job Vested',
-  'P2': 'Follow-up Pending Adoption',
-  'P3': 'Padlock Order Issued',
-  'P4': 'Padlock Order Rescinded',
-  'P5': 'Potential Plumbing Work',
-  'P6': 'Initial Notification Accepted',
-  'Q1': 'Compromised: Report Required',
-  'Q4': 'Compromised: Remedied',
-  'R1': 'No Action/No Follow-up',
-  'R3': 'No Action/Monthly Inspection',
-  'R4': 'Engineering Assessment Required',
-  'R5': 'Class 1 ECB/Order to Correct',
-  'R6': 'Engineering: No Action',
-  'R7': 'Engineering: Weekly Assessment',
-  'R8': 'Engineering: Monthly Assessment',
-  'R9': 'Building At Risk - No Danger',
-  'RA': 'Commissioner Order Issued',
-  'RB': 'Commissioner: Plans Accepted',
-  'RE': 'Commissioner: Weekly Monitoring',
-  'RG': 'Commissioner: Remediation Done',
-  'RH': 'Emergency Declaration Issued',
-  'RI': 'Immediate Emergency Declared',
-  'RJ': 'Emergency Action Completed',
-  'RK': 'Unsafe Building - Violation',
-  'RL': 'Unsafe Building - Completed',
-  'RM': 'Structural: Report Required',
-  'RN': 'Structural: Deadline Passed',
-  'RT': 'Compromised: Action Completed',
-  'RU': 'LL11 Unsafe - Initiated',
-  'RV': 'LL11 Unsafe - Completed',
-  'RW': 'Emergency Previously Issued',
-  'RX': 'Unsafe Precept Underway',
-  'RY': 'Facade Report Underway',
-  'RZ': 'Vacate Previously Issued',
-  'S0': 'Stalled: All Work Completed',
-  'S1': 'Stalled: Excavation Safe',
-  'S2': 'Stalled: Excavation Deteriorating',
-  'S3': 'Stalled: Excavation Unsafe',
-  'S4': 'Stalled: Superstructure Safe',
-  'S5': 'Stalled: Superstructure Deteriorating',
-  'S6': 'Stalled: Superstructure Unsafe',
-  'S7': 'Stalled: Graded & Fenced',
-  'S8': 'Stalled: Construction In Progress',
-  'S9': 'Stalled: Emergency Filed',
-  'V3': 'SWO for After Hours Work',
-  'W1': 'Violation for Disobeying Vacate',
-  'WA': 'Weather: No Action',
-  'WB': 'Weather: No Access',
-  'WD': 'Weather: Yellow Tag/Eng Required',
-  'WE': 'Weather: Downgraded to Yellow',
-  'WF': 'Weather: Downgraded to Green',
-  'WG': 'Weather: Green Rescinded',
-  'WH': 'Weather: Green/Utilities Issue',
-  'WI': 'Weather: Refer to Other Agency',
-  'WJ': 'Weather: See Other Complaint',
-  'XX': 'Administrative Closure',
-  'Y1': 'Full Vacate Order',
-  'Y2': 'Vacate Fully Rescinded',
-  'Y3': 'Partial Vacate Order',
-  'Y4': 'Vacate Partially Rescinded',
+  A1: 'Violation(s) Served',
+  A2: 'Criminal Court Summons Served',
+  A3: 'Full Stop Work Order',
+  A4: 'Violation & Criminal Summons',
+  A5: 'Violation & Criminal Summons',
+  A6: 'Vacant/Unguarded - Violation Issued',
+  A7: 'Accepted by Padlock Unit',
+  A8: 'ECB Violation Served',
+  A9: 'ECB & DOB Violations Served',
+  AF: 'Action Filed',
+  B1: 'Violation Prepared - To Be Served',
+  B2: 'ECB Violation Prepared - To Be Served',
+  C1: 'No Access - 1st Attempt',
+  C2: 'No Access - 2nd Attempt',
+  C3: 'Access Denied - 1st Attempt',
+  C4: 'Access Denied - 2nd Attempt',
+  C5: 'After Work: No Access - 1st',
+  C6: 'After Work: Access Denied - 1st',
+  C7: 'After Work: No Access - 2nd',
+  C8: 'After Work: Access Denied - 2nd',
+  D1: 'Assigned to Construction',
+  D2: 'Assigned to Plumbing',
+  D3: 'Assigned to Elevator',
+  D4: 'Assigned to BEST Squad',
+  D5: 'Assigned to Emergency Response',
+  D6: 'Assigned to Boiler',
+  D7: 'Assigned to Cranes & Derricks',
+  D8: 'Assigned to Executive Inspections',
+  D9: 'Assigned to Electrical',
+  E1: 'Assigned to Building Marshal',
+  E2: 'Assigned to Padlock Unit',
+  E3: 'Assigned to Boro Office',
+  E4: 'Assigned to Handicap Access',
+  E5: 'Assigned for Re-evaluation',
+  E6: 'Assigned to Special Operations',
+  E7: 'Assigned to Scaffold Safety',
+  E8: 'Assigned to Excavation Audits',
+  E9: 'Assigned to Stalled Sites',
+  EA: 'Assigned to Interior Demo',
+  EB: 'Assigned to Facade Program',
+  EC: 'Assigned to Compromised Buildings',
+  ED: 'Assigned to Retaining Walls',
+  EE: 'Reassigned for Review',
+  EZ: 'Assigned to DOI',
+  F1: 'Referred to DEP',
+  F2: 'Referred to DHCR',
+  F3: 'Referred to Health Dept',
+  F4: 'Referred for Review',
+  F5: 'Referred to Sanitation',
+  F6: 'Referred to DOT',
+  F7: 'Referred to Real Property',
+  F8: 'Referred to HPD',
+  F9: 'Referred to HUD',
+  G1: 'Referred to Inspector General',
+  G2: 'Referred to Parks',
+  G3: 'Referred to TLC',
+  G4: 'Referred to Consumer Affairs',
+  G5: 'Referred to NYPD',
+  G6: 'Referred to FDNY',
+  G7: 'Referred to Special Enforcement',
+  G8: 'Referred to NYCHA',
+  G9: 'Referred to DCAS',
+  H1: 'See Other Complaint',
+  H2: 'Previously Inspected',
+  H3: 'Violation for Disobeying SWO',
+  H4: 'Summons for Disobeying SWO',
+  H5: 'Stop All Work - No TCAO',
+  I1: 'Unsubstantiated by Records',
+  I2: 'No Violation Warranted',
+  I3: 'Compliance Inspection Done',
+  J1: 'Follow-up Pending Research',
+  J2: 'Resolved by Periodic Inspection',
+  J3: 'Reviewed - Inspection Scheduled',
+  J4: 'Follow-up for Hazard Scheduled',
+  K1: 'Unable to Locate Address',
+  K2: 'Address Invalid',
+  K3: 'Cranes - No Address',
+  K4: 'Cranes - SWO No Address',
+  K5: 'Letter of Deficiency Issued',
+  K6: 'Deficiency + Partial SWO',
+  K7: 'Correction Notification Received',
+  K8: 'Correction Verified',
+  L1: 'Partial Stop Work Order',
+  L2: 'Stop Work Fully Rescinded',
+  L3: 'Stop Work Partially Rescinded',
+  M1: 'Bike Access: Elevator OK',
+  M3: 'Bike Access: Parking Met',
+  M4: 'Bike Access: Parking Not Met',
+  MA: 'MARCH: No Enforcement',
+  MB: 'MARCH: Failure to Maintain',
+  MC: 'MARCH: Contrary to Plans',
+  MD: 'MARCH: Exit Obstructed',
+  ME: 'MARCH: Exit Obstructed + Vacate',
+  MF: 'MARCH: Exit + Partial Vacate',
+  MG: 'MARCH: Occupancy Violation',
+  MH: 'MARCH: No PA Permit + Vacate',
+  MI: 'MARCH: No PA + Partial Vacate',
+  MJ: 'MARCH: Work Without Permit',
+  MK: 'MARCH: No PA Permit',
+  ND: 'Notice of Deficiency',
+  P1: 'Job Vested',
+  P2: 'Follow-up Pending Adoption',
+  P3: 'Padlock Order Issued',
+  P4: 'Padlock Order Rescinded',
+  P5: 'Potential Plumbing Work',
+  P6: 'Initial Notification Accepted',
+  Q1: 'Compromised: Report Required',
+  Q4: 'Compromised: Remedied',
+  R1: 'No Action/No Follow-up',
+  R3: 'No Action/Monthly Inspection',
+  R4: 'Engineering Assessment Required',
+  R5: 'Class 1 ECB/Order to Correct',
+  R6: 'Engineering: No Action',
+  R7: 'Engineering: Weekly Assessment',
+  R8: 'Engineering: Monthly Assessment',
+  R9: 'Building At Risk - No Danger',
+  RA: 'Commissioner Order Issued',
+  RB: 'Commissioner: Plans Accepted',
+  RE: 'Commissioner: Weekly Monitoring',
+  RG: 'Commissioner: Remediation Done',
+  RH: 'Emergency Declaration Issued',
+  RI: 'Immediate Emergency Declared',
+  RJ: 'Emergency Action Completed',
+  RK: 'Unsafe Building - Violation',
+  RL: 'Unsafe Building - Completed',
+  RM: 'Structural: Report Required',
+  RN: 'Structural: Deadline Passed',
+  RT: 'Compromised: Action Completed',
+  RU: 'LL11 Unsafe - Initiated',
+  RV: 'LL11 Unsafe - Completed',
+  RW: 'Emergency Previously Issued',
+  RX: 'Unsafe Precept Underway',
+  RY: 'Facade Report Underway',
+  RZ: 'Vacate Previously Issued',
+  S0: 'Stalled: All Work Completed',
+  S1: 'Stalled: Excavation Safe',
+  S2: 'Stalled: Excavation Deteriorating',
+  S3: 'Stalled: Excavation Unsafe',
+  S4: 'Stalled: Superstructure Safe',
+  S5: 'Stalled: Superstructure Deteriorating',
+  S6: 'Stalled: Superstructure Unsafe',
+  S7: 'Stalled: Graded & Fenced',
+  S8: 'Stalled: Construction In Progress',
+  S9: 'Stalled: Emergency Filed',
+  V3: 'SWO for After Hours Work',
+  W1: 'Violation for Disobeying Vacate',
+  WA: 'Weather: No Action',
+  WB: 'Weather: No Access',
+  WD: 'Weather: Yellow Tag/Eng Required',
+  WE: 'Weather: Downgraded to Yellow',
+  WF: 'Weather: Downgraded to Green',
+  WG: 'Weather: Green Rescinded',
+  WH: 'Weather: Green/Utilities Issue',
+  WI: 'Weather: Refer to Other Agency',
+  WJ: 'Weather: See Other Complaint',
+  XX: 'Administrative Closure',
+  Y1: 'Full Vacate Order',
+  Y2: 'Vacate Fully Rescinded',
+  Y3: 'Partial Vacate Order',
+  Y4: 'Vacate Partially Rescinded',
 };
 
 function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
@@ -648,10 +664,16 @@ function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
   // Source-specific description extraction
   switch (event.source) {
     case 'capital':
-      return (rawData['description'] as string) ?? formatEventType(event.eventType, event.source);
+      return (
+        (rawData['description'] as string | undefined) ??
+        formatEventType(event.eventType, event.source)
+      );
     case 'dob':
     case 'dob-now':
-      return (rawData['job_description'] as string) ?? formatEventType(event.eventType, event.source);
+      return (
+        (rawData['job_description'] as string | undefined) ??
+        formatEventType(event.eventType, event.source)
+      );
     case 'dob-complaints': {
       const category = rawData['complaint_category'] as string | undefined;
       if (category) {
@@ -660,7 +682,10 @@ function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
       return 'Unknown Complaint';
     }
     case 'dob-violations':
-      return (rawData['violation_type'] as string) ?? formatEventType(event.eventType, event.source);
+      return (
+        (rawData['violation_type'] as string | undefined) ??
+        formatEventType(event.eventType, event.source)
+      );
     case 'dob-now-violations': {
       // DOB NOW violations have violation_remarks (description) and violation_type
       const remarks = rawData['violation_remarks'] as string | undefined;
@@ -670,7 +695,10 @@ function formatEventDescription(event: typeof rawEvents.$inferSelect): string {
       return 'DOB NOW Violation';
     }
     case 'zap':
-      return (rawData['project_name'] as string) ?? formatEventType(event.eventType, event.source);
+      return (
+        (rawData['project_name'] as string | undefined) ??
+        formatEventType(event.eventType, event.source)
+      );
     default:
       return formatEventType(event.eventType, event.source);
   }
@@ -682,13 +710,13 @@ function getSourceId(event: typeof rawEvents.$inferSelect): string | undefined {
 
   switch (event.source) {
     case 'capital':
-      return (rawData['maprojid'] as string) ?? event.sourceId ?? undefined;
+      return (rawData['maprojid'] as string | undefined) ?? event.sourceId ?? undefined;
     case 'dob':
-      return (rawData['job__'] as string) ?? event.sourceId ?? undefined;
+      return (rawData['job__'] as string | undefined) ?? event.sourceId ?? undefined;
     case 'dob-now':
-      return (rawData['job_filing_number'] as string) ?? event.sourceId ?? undefined;
+      return (rawData['job_filing_number'] as string | undefined) ?? event.sourceId ?? undefined;
     case 'zap':
-      return (rawData['project_id'] as string) ?? event.sourceId ?? undefined;
+      return (rawData['project_id'] as string | undefined) ?? event.sourceId ?? undefined;
     default:
       return event.sourceId ?? undefined;
   }
@@ -705,7 +733,10 @@ function getAgency(rawData: Record<string, unknown> | null, source: string): str
   }
 }
 
-function getProjectType(rawData: Record<string, unknown> | null, source: string): string | undefined {
+function getProjectType(
+  rawData: Record<string, unknown> | null,
+  source: string,
+): string | undefined {
   if (!rawData) return undefined;
 
   switch (source) {
@@ -800,7 +831,9 @@ function getDateLabel(source: string): string {
  * - B00703063 is the job number (used for API lookup)
  * - I1 is the filing number (used to find the right entry in pw1List)
  */
-async function fetchDobNowDetails(jobFilingNumber: string): Promise<SourceSummary['dobNowDetails'] | undefined> {
+async function fetchDobNowDetails(
+  jobFilingNumber: string,
+): Promise<SourceSummary['dobNowDetails'] | undefined> {
   try {
     // Parse job number and filing number from format "B00703063-I1"
     const parts = jobFilingNumber.split('-');
@@ -813,17 +846,17 @@ async function fetchDobNowDetails(jobFilingNumber: string): Promise<SourceSummar
       `https://a810-dobnow.nyc.gov/Publish/WrapperPP/PublicPortal.svc/GlobalSearchApplication/${encodeURIComponent(jobNumber)}`,
       {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         signal: AbortSignal.timeout(5000), // 5 second timeout
-      }
+      },
     );
 
     if (!response.ok) {
       return undefined;
     }
 
-    const data = await response.json() as DobNowApiResponse;
+    const data = (await response.json()) as DobNowApiResponse;
 
     if (!data.IsSuccess || !data.pw1List || data.pw1List.length === 0) {
       return undefined;
@@ -831,21 +864,21 @@ async function fetchDobNowDetails(jobFilingNumber: string): Promise<SourceSummar
 
     // Find the matching filing in the list, or use the first one
     const filing = filingNumber
-      ? data.pw1List.find(f => f.FilingNumber === filingNumber) ?? data.pw1List[0]
+      ? (data.pw1List.find((f) => f.FilingNumber === filingNumber) ?? data.pw1List[0])
       : data.pw1List[0];
 
     if (!filing) return undefined;
 
     return {
-      bin: filing.Bin || undefined,
-      address: filing.Address || undefined,
-      borough: filing.Borough || undefined,
-      owner: filing.Owner || undefined,
-      designProfessional: filing.DesignProfessional || undefined,
-      jobStatus: filing.JobStatusLabel || undefined,
-      filingStatus: filing.CurrentFilingStatusValue || undefined,
-      jobType: filing.JobTypeLabel || undefined,
-      floors: filing.WorkonFloors || undefined,
+      bin: filing.Bin ?? undefined,
+      address: filing.Address ?? undefined,
+      borough: filing.Borough ?? undefined,
+      owner: filing.Owner ?? undefined,
+      designProfessional: filing.DesignProfessional ?? undefined,
+      jobStatus: filing.JobStatusLabel ?? undefined,
+      filingStatus: filing.CurrentFilingStatusValue ?? undefined,
+      jobType: filing.JobTypeLabel ?? undefined,
+      floors: filing.WorkonFloors ?? undefined,
     };
   } catch {
     // Silently fail - API enrichment is optional
@@ -868,17 +901,17 @@ async function fetchPropertyDetails(bin: string): Promise<PropertyDetails | unde
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         signal: AbortSignal.timeout(5000),
-      }
+      },
     );
 
     if (!response.ok) {
       return undefined;
     }
 
-    const data = await response.json() as PropertyDetailsApiResponse;
+    const data = (await response.json()) as PropertyDetailsApiResponse;
 
     if (!data.IsSuccess || !data.PropertyDetails) {
       return undefined;
@@ -905,18 +938,18 @@ async function fetchPropertyDetails(bin: string): Promise<PropertyDetails | unde
       borough: prop.Borough ?? borough,
       taxBlock,
       taxLot,
-      houseNumber: prop.HouseNo || undefined,
-      streetName: prop.StreetName || undefined,
-      zip: prop.Zip || undefined,
+      houseNumber: prop.HouseNo ?? undefined,
+      streetName: prop.StreetName ?? undefined,
+      zip: prop.Zip ?? undefined,
       crossStreets: crossStreets.length > 0 ? crossStreets : undefined,
-      occupancy: prop.VlFinaOccpncy || undefined,
-      buildingsOnLot: prop.BuildingsonLot || undefined,
+      occupancy: prop.VlFinaOccpncy ?? undefined,
+      buildingsOnLot: prop.BuildingsonLot ?? undefined,
       vacant: prop.Vacant === 'YES',
       cityOwned: prop.CityOwned === 'YES',
       condo: prop.Condo === 'YES',
-      specialArea: prop.SpecialArea || undefined,
-      specialDistrict: prop.SpecialDistrict || undefined,
-      landmarkStatus: prop.LandmarkStatus || undefined,
+      specialArea: prop.SpecialArea ?? undefined,
+      specialDistrict: prop.SpecialDistrict ?? undefined,
+      landmarkStatus: prop.LandmarkStatus ?? undefined,
       floodZone: prop.SpecialFloodHazardArea === 'Y',
       coastalErosion: prop.CoastalErosionHazardArea === 'Y',
       freshwaterWetlands: prop.FreshwaterWetlands === 'Y',
@@ -931,7 +964,7 @@ async function fetchPropertyDetails(bin: string): Promise<PropertyDetails | unde
       filingOnHold: viol?.FilingOnHold === 'Y',
       approvalOnHold: viol?.ApprovalOnHold === 'Y',
       communityBoard: prop.CommunityBoard ? String(prop.CommunityBoard) : undefined,
-      censusTract: prop.CensusTract || undefined,
+      censusTract: prop.CensusTract ?? undefined,
     };
   } catch {
     // Silently fail - API enrichment is optional

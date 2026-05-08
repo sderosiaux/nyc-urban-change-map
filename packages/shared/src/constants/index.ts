@@ -18,8 +18,8 @@ export const INTENSITY_WEIGHTS: Record<EventType, number> = {
   mechanical: 5,
 
   // Alterations (medium impact)
-  minor_alteration: 10,  // A2 - cumulative
-  major_alteration: 30,  // A1
+  minor_alteration: 10, // A2 - cumulative
+  major_alteration: 30, // A1
 
   // Major transformations (high impact)
   demolition: 35,
@@ -33,16 +33,16 @@ export const INTENSITY_WEIGHTS: Record<EventType, number> = {
   ulurp_denied: 0,
 
   // CEQR signals (environmental review)
-  ceqr_eas: 12,          // EAS filed - early signal
-  ceqr_eis_draft: 18,    // Draft EIS - significant project
-  ceqr_eis_final: 22,    // Final EIS - approved
-  ceqr_completed: 15,    // Review complete
+  ceqr_eas: 12, // EAS filed - early signal
+  ceqr_eis_draft: 18, // Draft EIS - significant project
+  ceqr_eis_final: 22, // Final EIS - approved
+  ceqr_completed: 15, // Review complete
 
   // Public projects
   capital_project: 25,
 
   // Status changes
-  construction_started: 0,  // Already counted via permit
+  construction_started: 0, // Already counted via permit
   construction_completed: 0,
   other: 0,
 };
@@ -62,15 +62,18 @@ export interface MaturityLevel {
 }
 
 export const MATURITY_LEVELS: MaturityLevel[] = [
-  { label: 'Stable', min: 0, max: 20, color: '#94a3b8' },      // slate-400
-  { label: 'Frictions', min: 20, max: 50, color: '#fbbf24' },  // amber-400
+  { label: 'Stable', min: 0, max: 20, color: '#94a3b8' }, // slate-400
+  { label: 'Frictions', min: 20, max: 50, color: '#fbbf24' }, // amber-400
   { label: 'Transformation', min: 50, max: 80, color: '#f97316' }, // orange-500
-  { label: 'Mutation', min: 80, max: 100, color: '#dc2626' },  // red-600
+  { label: 'Mutation', min: 80, max: 100, color: '#dc2626' }, // red-600
 ];
 
 export function getMaturityLevel(intensity: number): MaturityLevel {
-  return MATURITY_LEVELS.find(l => intensity >= l.min && intensity < l.max)
-    ?? MATURITY_LEVELS[MATURITY_LEVELS.length - 1]!;
+  return (
+    MATURITY_LEVELS.find((l) => intensity >= l.min && intensity < l.max) ??
+    // Array is a non-empty const, last element always exists
+    (MATURITY_LEVELS[MATURITY_LEVELS.length - 1] as MaturityLevel)
+  );
 }
 
 // =============================================================================
@@ -78,21 +81,15 @@ export function getMaturityLevel(intensity: number): MaturityLevel {
 // =============================================================================
 
 export const CERTAINTY_SIGNALS: Record<Certainty, EventType[]> = {
-  certain: [
-    'construction_started',
-    'construction_completed',
-  ],
+  certain: ['construction_started', 'construction_completed'],
   probable: [
-    'new_building',      // Permit issued means approved
+    'new_building', // Permit issued means approved
     'major_alteration',
     'demolition',
     'zap_approved',
     'ulurp_approved',
   ],
-  discussion: [
-    'ulurp_filed',
-    'zap_filed',
-  ],
+  discussion: ['ulurp_filed', 'zap_filed'],
 };
 
 // =============================================================================
@@ -144,9 +141,9 @@ export const IMPACT_ESTIMATION = {
 
 export const HEATMAP_CONFIG = {
   // H3 resolution levels
-  resolutionCity: 7,     // ~5.16 km² - city overview
-  resolutionNeighborhood: 8,  // ~0.74 km² - neighborhood level
-  resolutionBlock: 9,    // ~0.11 km² - block level
+  resolutionCity: 7, // ~5.16 km² - city overview
+  resolutionNeighborhood: 8, // ~0.74 km² - neighborhood level
+  resolutionBlock: 9, // ~0.11 km² - block level
 
   // Default resolution
   defaultResolution: 8,
@@ -175,15 +172,9 @@ export const DISPLAY_CONFIG = {
 // NYC GEOGRAPHY
 // =============================================================================
 
-export const NYC_BOROUGHS = [
-  'Manhattan',
-  'Brooklyn',
-  'Queens',
-  'Bronx',
-  'Staten Island',
-] as const;
+export const NYC_BOROUGHS = ['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island'] as const;
 
-export type Borough = typeof NYC_BOROUGHS[number];
+export type Borough = (typeof NYC_BOROUGHS)[number];
 
 export const NYC_BOUNDS = {
   sw: [-74.2591, 40.4774] as [number, number],
@@ -203,31 +194,31 @@ export const NYC_DATA_ENDPOINTS = {
   // ==========================================================================
   // DOB - Department of Buildings (Travaux et Permis)
   // ==========================================================================
-  dobPermits: `${NYC_OPEN_DATA_BASE}/ipu4-2q9a.json`,      // DOB Permit Issuance - historical (ends 2020)
-  dobNow: `${NYC_OPEN_DATA_BASE}/w9ak-ipjd.json`,          // DOB NOW: Job Filings (active, has dates)
-  dobComplaints: `${NYC_OPEN_DATA_BASE}/eabe-havv.json`,   // DOB Complaints
-  dobViolations: `${NYC_OPEN_DATA_BASE}/3h2n-5cm9.json`,   // DOB/ECB Violations (BISWeb)
+  dobPermits: `${NYC_OPEN_DATA_BASE}/ipu4-2q9a.json`, // DOB Permit Issuance - historical (ends 2020)
+  dobNow: `${NYC_OPEN_DATA_BASE}/w9ak-ipjd.json`, // DOB NOW: Job Filings (active, has dates)
+  dobComplaints: `${NYC_OPEN_DATA_BASE}/eabe-havv.json`, // DOB Complaints
+  dobViolations: `${NYC_OPEN_DATA_BASE}/3h2n-5cm9.json`, // DOB/ECB Violations (BISWeb)
   dobNowViolations: `${NYC_OPEN_DATA_BASE}/855j-jady.json`, // DOB NOW Safety Violations (civil penalties)
 
   // ==========================================================================
   // Planning (Planification Urbaine)
   // ==========================================================================
-  zapProjects: `${NYC_OPEN_DATA_BASE}/hgx4-8ukb.json`,     // ZAP - Zoning Applications
-  zapBbl: `${NYC_OPEN_DATA_BASE}/2iga-a6mk.json`,          // ZAP BBL - Project to BBL mapping
+  zapProjects: `${NYC_OPEN_DATA_BASE}/hgx4-8ukb.json`, // ZAP - Zoning Applications
+  zapBbl: `${NYC_OPEN_DATA_BASE}/2iga-a6mk.json`, // ZAP BBL - Project to BBL mapping
   capitalProjects: `${NYC_OPEN_DATA_BASE}/h2ic-zdws.json`, // CPDB - Capital Projects
-  ceqrProjects: `${NYC_OPEN_DATA_BASE}/gezn-7mgk.json`,    // CEQR Projects
-  ceqrMilestones: `${NYC_OPEN_DATA_BASE}/8fj8-3sgg.json`,  // CEQR Project Milestones
+  ceqrProjects: `${NYC_OPEN_DATA_BASE}/gezn-7mgk.json`, // CEQR Projects
+  ceqrMilestones: `${NYC_OPEN_DATA_BASE}/8fj8-3sgg.json`, // CEQR Project Milestones
 
   // ==========================================================================
   // Property & Context (Géographie et Contexte)
   // ==========================================================================
-  pluto: `${NYC_OPEN_DATA_BASE}/64uk-42ks.json`,           // PLUTO - property data
-  pad: `${NYC_OPEN_DATA_BASE}/bc8t-ecyu.json`,             // PAD - address directory
+  pluto: `${NYC_OPEN_DATA_BASE}/64uk-42ks.json`, // PLUTO - property data
+  pad: `${NYC_OPEN_DATA_BASE}/bc8t-ecyu.json`, // PAD - address directory
 
   // ==========================================================================
   // Boundaries (Frontières Administratives)
   // ==========================================================================
-  ntas: `${NYC_OPEN_DATA_BASE}/9nt8-h7nd.json`,            // NTAs 2020
+  ntas: `${NYC_OPEN_DATA_BASE}/9nt8-h7nd.json`, // NTAs 2020
   communityDistricts: `${NYC_OPEN_DATA_BASE}/jp9i-3b7y.json`, // Community Districts
-  boroughs: `${NYC_OPEN_DATA_BASE}/7t3b-ywvw.json`,        // Borough Boundaries
+  boroughs: `${NYC_OPEN_DATA_BASE}/7t3b-ywvw.json`, // Borough Boundaries
 };

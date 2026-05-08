@@ -4,7 +4,6 @@
  */
 
 import type { TransformationNature, EventType } from '@ucm/shared';
-import { countBy } from '@ucm/shared';
 import type { RawEvent } from '../db/schema.js';
 
 // Map event types to transformation nature
@@ -43,7 +42,7 @@ const NATURE_MAPPING: Record<EventType, TransformationNature | null> = {
 
 // Weight each nature type for determining dominant nature
 export const NATURE_WEIGHTS: Record<TransformationNature, number> = {
-  densification: 5,  // New buildings are most significant
+  densification: 5, // New buildings are most significant
   demolition: 4,
   infrastructure: 3,
   renovation: 2,
@@ -90,15 +89,19 @@ export function deriveNature(events: RawEvent[]): TransformationNature {
       .map(([n, c]) => c * NATURE_WEIGHTS[n])
       .sort((a, b) => b - a);
 
-    if (scores.length > 1 && scores[0]! - scores[1]! < 3) {
-      return 'mixed';
+    if (scores.length > 1) {
+      const first = scores[0];
+      const second = scores[1];
+      if (first !== undefined && second !== undefined && first - second < 3) {
+        return 'mixed';
+      }
     }
 
     return dominantNature;
   }
 
   // Single nature type
-  return natureCounts.keys().next().value!;
+  return natureCounts.entries().next().value?.[0] ?? 'mixed';
 }
 
 /**

@@ -152,22 +152,6 @@ const FILING_STATUS_LABELS: Record<string, { label: string; emoji?: string; colo
   Initial: { label: 'Application started', color: 'text-slate-600' },
 };
 
-// Certainty badge colors
-const CERTAINTY_STYLES = {
-  discussion: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Under discussion' },
-  probable: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Likely' },
-  certain: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved' },
-} as const;
-
-// Nature badge colors
-const NATURE_STYLES = {
-  densification: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Densification' },
-  renovation: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Renovation' },
-  infrastructure: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Infrastructure' },
-  demolition: { bg: 'bg-red-100', text: 'text-red-700', label: 'Demolition' },
-  mixed: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Mixed' },
-} as const;
-
 // ZAP (Zoning Application Portal) action code labels
 const ZAP_ACTION_LABELS: Record<string, string> = {
   ZM: 'Zoning Map Amendment',
@@ -708,8 +692,9 @@ function ActivityTimeline({
     const month = source.filedDate ? formatDate(source.filedDate) : 'No date';
     const key = `${month}|${source.sourceType}|${source.description}`;
 
-    if (groupMap.has(key)) {
-      groupMap.get(key)!.items.push(source);
+    const existing = groupMap.get(key);
+    if (existing) {
+      existing.items.push(source);
     } else {
       const group: SourceGroup = {
         key,
@@ -795,11 +780,12 @@ function ActivityTimeline({
             const complaint = group.items[0]?.complaintDetails;
             const dobNow = group.items[0]?.dobNowDetails;
             const isClosed = complaint?.status === 'CLOSED';
-            const isWithdrawn = dobNow?.filingStatus?.toLowerCase().includes('withdrawn');
-            const isCompleted =
-              dobNow?.jobStatus && COMPLETED_JOB_STATUSES.includes(dobNow.jobStatus);
+            const isWithdrawn = (dobNow?.filingStatus?.toLowerCase() ?? '').includes('withdrawn');
+            const isCompleted = !!(
+              dobNow?.jobStatus && COMPLETED_JOB_STATUSES.includes(dobNow.jobStatus)
+            );
             const isExpanded = expandedItems.has(group.key);
-            const isCollapsible = (isClosed && complaint) || isWithdrawn || isCompleted;
+            const isCollapsible = isClosed || isWithdrawn || isCompleted;
             const isDimmed = (isClosed || isWithdrawn) && !isExpanded;
 
             return (
@@ -865,7 +851,7 @@ function ActivityTimeline({
                     {/* Type with optional tooltip */}
                     {(() => {
                       const explanation =
-                        JOB_TYPE_EXPLANATIONS[group.sourceType] ||
+                        JOB_TYPE_EXPLANATIONS[group.sourceType] ??
                         JOB_TYPE_EXPLANATIONS[group.description];
                       const isViolationType = group.sourceType === 'Violation';
                       const isCivilPenalty = group.sourceType === 'Civil Penalty';
@@ -917,7 +903,7 @@ function ActivityTimeline({
                       group.items.map((item, i) => {
                         if (!item.sourceId) return null;
                         const isZap =
-                          item.zapDetails ||
+                          item.zapDetails != null ||
                           group.sourceType === 'ULURP Filed' ||
                           group.sourceType === 'ZAP';
                         const isViolation = group.sourceType === 'Violation';
@@ -978,7 +964,7 @@ function ActivityTimeline({
                             key={i}
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(item.sourceId!);
+                              void navigator.clipboard.writeText(item.sourceId ?? '');
                             }}
                             title={isWithdrawn ? 'Withdrawn - Click to copy' : 'Click to copy'}
                             className={`text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer font-mono ${isWithdrawn ? 'line-through opacity-60' : ''}`}
@@ -1111,8 +1097,8 @@ function ActivityTimeline({
                               dob.jobStatus &&
                               (() => {
                                 const status = JOB_STATUS_LABELS[dob.jobStatus];
-                                const label = status?.label || dob.jobStatus;
-                                const color = status?.color || 'text-slate-600';
+                                const label = status?.label ?? dob.jobStatus;
+                                const color = status?.color ?? 'text-slate-600';
                                 return (
                                   <>
                                     <span className="text-slate-400">Status</span>
@@ -1135,12 +1121,12 @@ function ActivityTimeline({
                               (() => {
                                 // Hide Filing if it shows the same as Job Status (redundant)
                                 const jobStatusLabel = dob.jobStatus
-                                  ? JOB_STATUS_LABELS[dob.jobStatus]?.label || dob.jobStatus
+                                  ? (JOB_STATUS_LABELS[dob.jobStatus]?.label ?? dob.jobStatus)
                                   : null;
                                 const status = FILING_STATUS_LABELS[dob.filingStatus];
-                                const label = status?.label || dob.filingStatus;
+                                const label = status?.label ?? dob.filingStatus;
                                 if (label === jobStatusLabel) return null;
-                                const color = status?.color || 'text-slate-600';
+                                const color = status?.color ?? 'text-slate-600';
                                 return (
                                   <>
                                     <span className="text-slate-400">Filing</span>
@@ -1155,7 +1141,7 @@ function ActivityTimeline({
                               })()}
                             {dob.jobType &&
                               (() => {
-                                const label = JOB_TYPE_LABELS[dob.jobType] || dob.jobType;
+                                const label = JOB_TYPE_LABELS[dob.jobType] ?? dob.jobType;
                                 const explanation = JOB_TYPE_EXPLANATIONS[dob.jobType];
                                 // Include DOB code in tooltip if label differs from raw code
                                 const tooltipContent = explanation
@@ -1183,7 +1169,7 @@ function ActivityTimeline({
                             {dob.floors &&
                               (() => {
                                 const rangeMatch = /(\d+)\s+through\s+(\d+)/i.exec(dob.floors);
-                                if (rangeMatch?.[1] && rangeMatch?.[2]) {
+                                if (rangeMatch?.[1] && rangeMatch[2]) {
                                   // Unify if min=max (001-001 → 001)
                                   const floorDisplay =
                                     rangeMatch[1] === rangeMatch[2]
@@ -1298,7 +1284,7 @@ function ActivityTimeline({
                         const firstWithZap = group.items.find((item) => item.zapDetails);
                         if (!firstWithZap?.zapDetails) return null;
                         const zap = firstWithZap.zapDetails;
-                        const statusStyle = ZAP_STATUS_STYLES[zap.publicStatus] || {
+                        const statusStyle = ZAP_STATUS_STYLES[zap.publicStatus] ?? {
                           bg: 'bg-slate-100',
                           text: 'text-slate-600',
                         };
@@ -1327,7 +1313,7 @@ function ActivityTimeline({
                                 <span className="text-xs text-slate-400">Zoning Actions:</span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {zap.actions.map((action, idx) => {
-                                    const label = ZAP_ACTION_LABELS[action] || action;
+                                    const label = ZAP_ACTION_LABELS[action] ?? action;
                                     const ulurpNum = zap.ulurpNumbers?.[idx];
                                     if (ulurpNum) {
                                       return (
@@ -1508,7 +1494,9 @@ export default function DetailPanel() {
                   const occupancy = prop.occupancy;
                   const occupancyCode = occupancy?.split('-')[0]?.trim();
                   const occupancyLabel = occupancyCode
-                    ? OCCUPANCY_LABELS[occupancy!] || OCCUPANCY_LABELS[occupancyCode] || occupancy
+                    ? (OCCUPANCY_LABELS[occupancyCode] ??
+                      OCCUPANCY_LABELS[occupancyCode] ??
+                      occupancy)
                     : null;
 
                   // Zone: one special district (purple)
@@ -1517,7 +1505,7 @@ export default function DetailPanel() {
                     ?.replace(' - ', ' ')
                     .replace('MIH AREA', 'MIH')
                     .split(' ')[0];
-                  const zoneInfo = zoneKey ? ZONE_LABELS[zoneKey] || ZONE_LABELS[zone] : null;
+                  const zoneInfo = zoneKey ? (ZONE_LABELS[zoneKey] ?? ZONE_LABELS[zone]) : null;
 
                   // ─────────────────────────────────────────────────────────────
                   // STACKABLE BADGES (can have multiple)
@@ -1554,8 +1542,8 @@ export default function DetailPanel() {
                   // ─────────────────────────────────────────────────────────────
 
                   const hasBadges =
-                    occupancyLabel ||
-                    zone ||
+                    (occupancyLabel != null && occupancyLabel !== '') ||
+                    (zone != null && zone !== '') ||
                     statusFlags.length > 0 ||
                     violationFlags.length > 0 ||
                     holdFlags.length > 0;
@@ -1578,11 +1566,11 @@ export default function DetailPanel() {
                       {/* Exclusive: Zone (purple) */}
                       {zone && (
                         <Tooltip
-                          content={zoneInfo?.description || `Special zoning: ${zone}`}
+                          content={zoneInfo?.description ?? `Special zoning: ${zone}`}
                           position="top"
                         >
                           <span className={`${badgeBase} bg-purple-50 text-purple-700 cursor-help`}>
-                            {zoneInfo?.label || zoneKey || zone}
+                            {zoneInfo?.label ?? zoneKey ?? zone}
                           </span>
                         </Tooltip>
                       )}
@@ -1743,7 +1731,7 @@ export default function DetailPanel() {
 
               return (
                 <div className="text-sm text-slate-600 space-y-1">
-                  {(bin || bbl) && (
+                  {(bin ?? bbl) && (
                     <div className="flex items-center gap-2">
                       <div className="w-16 flex-shrink-0">
                         <Tooltip
@@ -1759,7 +1747,9 @@ export default function DetailPanel() {
                         {bin && (
                           <Tooltip content="Building ID Number. Click to copy." position="top">
                             <button
-                              onClick={() => navigator.clipboard.writeText(bin)}
+                              onClick={() => {
+                                void navigator.clipboard.writeText(bin);
+                              }}
                               className="font-mono text-slate-700 hover:text-slate-900 cursor-pointer"
                             >
                               {bin}
@@ -1770,7 +1760,9 @@ export default function DetailPanel() {
                         {bbl && (
                           <Tooltip content="Borough-Block-Lot. Click to copy." position="top">
                             <button
-                              onClick={() => navigator.clipboard.writeText(bbl)}
+                              onClick={() => {
+                                void navigator.clipboard.writeText(bbl);
+                              }}
                               className="font-mono text-slate-700 hover:text-slate-900 cursor-pointer"
                             >
                               {bbl}

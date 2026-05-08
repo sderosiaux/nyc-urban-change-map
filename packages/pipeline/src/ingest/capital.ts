@@ -54,7 +54,7 @@ export interface NormalizedCapitalEvent {
  * Map project category to transformation nature
  * Most capital projects are infrastructure
  */
-export function mapProjectCategory(typeCategory?: string): TransformationNature {
+export function mapProjectCategory(_typeCategory?: string): TransformationNature {
   // Almost all capital projects are infrastructure
   // Could refine based on agency or type if needed
   return 'infrastructure';
@@ -96,6 +96,8 @@ export function normalizeCapitalProject(project: CapitalProject): NormalizedCapi
   }
 
   // Parse cost - use plannedcommit_total or adopt_total
+  // Use || intentionally: empty string means no cost data, try next field
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const costStr = project.plannedcommit_total || project.adopt_total || project.allocate_total;
   const totalCost = costStr ? parseFloat(costStr) : null;
 
@@ -151,7 +153,7 @@ export async function fetchCapitalProjects(options: {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.capitalProjects}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.capitalProjects}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -161,7 +163,7 @@ export async function fetchCapitalProjects(options: {
       return [];
     }
 
-    return response.json() as Promise<CapitalProject[]>;
+    return (await response.json()) as CapitalProject[];
   } catch (error) {
     console.error('Failed to fetch capital projects:', error);
     return [];

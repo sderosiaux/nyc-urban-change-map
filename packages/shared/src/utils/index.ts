@@ -21,7 +21,8 @@ export function addYears(date: Date, years: number): Date {
 }
 
 export function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0]!;
+  const [day] = date.toISOString().split('T');
+  return day ?? '';
 }
 
 export function parseDate(dateStr: string): Date {
@@ -57,9 +58,12 @@ export function getCentroid(geometry: Geometry): [number, number] {
 
   let sumLng = 0;
   let sumLat = 0;
-  for (const [lng, lat] of coords) {
-    sumLng += lng!;
-    sumLat += lat!;
+  for (const coord of coords) {
+    const lng = coord[0];
+    const lat = coord[1];
+    if (lng == null || lat == null) continue;
+    sumLng += lng;
+    sumLat += lat;
   }
 
   return [sumLng / coords.length, sumLat / coords.length];
@@ -67,12 +71,7 @@ export function getCentroid(geometry: Geometry): [number, number] {
 
 export function isWithinBounds(point: [number, number], bounds: Bounds): boolean {
   const [lng, lat] = point;
-  return (
-    lng >= bounds.sw[0] &&
-    lng <= bounds.ne[0] &&
-    lat >= bounds.sw[1] &&
-    lat <= bounds.ne[1]
-  );
+  return lng >= bounds.sw[0] && lng <= bounds.ne[0] && lat >= bounds.sw[1] && lat <= bounds.ne[1];
 }
 
 export function boundsToString(bounds: Bounds): string {
@@ -84,9 +83,13 @@ export function parseBounds(boundsStr: string): Bounds {
   if (parts.length !== 4 || parts.some(isNaN)) {
     throw new Error(`Invalid bounds string: ${boundsStr}`);
   }
+  const [swLng, swLat, neLng, neLat] = parts;
+  if (swLng == null || swLat == null || neLng == null || neLat == null) {
+    throw new Error(`Invalid bounds string: ${boundsStr}`);
+  }
   return {
-    sw: [parts[0]!, parts[1]!],
-    ne: [parts[2]!, parts[3]!],
+    sw: [swLng, swLat],
+    ne: [neLng, neLat],
   };
 }
 
@@ -113,7 +116,7 @@ export function capitalize(str: string): string {
 
 export function groupBy<T, K extends string | number>(
   items: T[],
-  keyFn: (item: T) => K
+  keyFn: (item: T) => K,
 ): Map<K, T[]> {
   const groups = new Map<K, T[]>();
   for (const item of items) {
@@ -130,7 +133,7 @@ export function groupBy<T, K extends string | number>(
 
 export function countBy<T, K extends string | number>(
   items: T[],
-  keyFn: (item: T) => K
+  keyFn: (item: T) => K,
 ): Map<K, number> {
   const counts = new Map<K, number>();
   for (const item of items) {
@@ -143,11 +146,15 @@ export function countBy<T, K extends string | number>(
 export function maxBy<T>(items: T[], valueFn: (item: T) => number): T | undefined {
   if (items.length === 0) return undefined;
 
-  let maxItem = items[0]!;
+  const first = items[0];
+  if (!first) return undefined;
+
+  let maxItem = first;
   let maxValue = valueFn(maxItem);
 
   for (let i = 1; i < items.length; i++) {
-    const item = items[i]!;
+    const item = items[i];
+    if (!item) continue;
     const value = valueFn(item);
     if (value > maxValue) {
       maxItem = item;

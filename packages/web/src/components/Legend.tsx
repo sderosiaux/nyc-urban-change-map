@@ -22,9 +22,7 @@ export default function Legend() {
 
       {/* Intensity scale */}
       <div className="mb-4">
-        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">
-          Intensity
-        </h4>
+        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Intensity</h4>
         <div className="space-y-1.5">
           {INTENSITY_SCALE.map((item) => (
             <div key={item.value} className="flex items-center gap-2">
@@ -51,9 +49,7 @@ export default function Legend() {
 
       {/* Certainty levels */}
       <div>
-        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">
-          Certainty
-        </h4>
+        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Certainty</h4>
         <div className="space-y-1.5">
           {CERTAINTY_LEVELS.map((item) => (
             <div key={item.level} className="flex items-center gap-2">
@@ -69,9 +65,7 @@ export default function Legend() {
 
       {/* Size indicator */}
       <div className="mt-4 pt-3 border-t border-slate-100">
-        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">
-          Size = Intensity
-        </h4>
+        <h4 className="text-xs text-slate-500 uppercase tracking-wide mb-2">Size = Intensity</h4>
         <div className="flex items-end gap-2 justify-center">
           <div className="w-2 h-2 rounded-full bg-slate-400" />
           <div className="w-3 h-3 rounded-full bg-amber-400" />

@@ -36,7 +36,7 @@ describe('normalizeViolation', () => {
     expect(result!.address).toBe('123 MAIN STREET');
     expect(result!.borough).toBe('Manhattan');
     expect(result!.latitude).toBeCloseTo(40.7128, 4);
-    expect(result!.longitude).toBeCloseTo(-74.0060, 4);
+    expect(result!.longitude).toBeCloseTo(-74.006, 4);
     expect(result!.violationType).toBe('Local Law');
     expect(result!.violationCategory).toBe('V*-DOB VIOLATION - ACTIVE');
     expect(result!.description).toBe('Illegal conversion of cellar');

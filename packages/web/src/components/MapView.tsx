@@ -186,7 +186,12 @@ function heatmapToGeoJSON(cells: HeatmapCell[]): GeoJSON.FeatureCollection {
       id: cell.h3Index,
       geometry: {
         type: 'Polygon' as const,
-        coordinates: [[...cell.boundary, cell.boundary[0]!]],
+        coordinates: [
+          [...cell.boundary, ...(cell.boundary.length > 0 ? [cell.boundary[0]] : [])] as [
+            number,
+            number,
+          ][],
+        ],
       },
       properties: {
         h3Index: cell.h3Index,
@@ -214,7 +219,7 @@ export default function MapView() {
   const clusterIndex = useMemo(() => {
     if (!placesData?.features) return null;
     return createClusterIndex(placesData.features);
-  }, [placesData?.features]);
+  }, [placesData]);
 
   const clusteredData = useMemo(() => {
     if (!clusterIndex || !bounds || !showClusters) {
@@ -241,7 +246,7 @@ export default function MapView() {
       return { type: 'FeatureCollection' as const, features: [] };
     }
     return heatmapToGeoJSON(heatmapData.cells);
-  }, [heatmapData?.cells, showHeatmap]);
+  }, [heatmapData, showHeatmap]);
 
   const pointsData = useMemo(() => {
     if (!placesData || !showPoints) {
@@ -261,12 +266,10 @@ export default function MapView() {
       const map = mapRef.current?.getMap();
       if (map) {
         const mapBounds = map.getBounds();
-        if (mapBounds) {
-          setBounds({
-            sw: [mapBounds.getWest(), mapBounds.getSouth()],
-            ne: [mapBounds.getEast(), mapBounds.getNorth()],
-          });
-        }
+        setBounds({
+          sw: [mapBounds.getWest(), mapBounds.getSouth()],
+          ne: [mapBounds.getEast(), mapBounds.getNorth()],
+        });
       }
     },
     [setViewport, setBounds],
@@ -277,12 +280,10 @@ export default function MapView() {
     if (!map) return;
 
     const mapBounds = map.getBounds();
-    if (mapBounds) {
-      setBounds({
-        sw: [mapBounds.getWest(), mapBounds.getSouth()],
-        ne: [mapBounds.getEast(), mapBounds.getNorth()],
-      });
-    }
+    setBounds({
+      sw: [mapBounds.getWest(), mapBounds.getSouth()],
+      ne: [mapBounds.getEast(), mapBounds.getNorth()],
+    });
   }, [setBounds]);
 
   const handleClick = useCallback(
@@ -303,7 +304,8 @@ export default function MapView() {
         return;
       }
 
-      const id = feature.properties['id'] ?? feature.id;
+      const rawId = feature.properties['id'] as string | undefined | null;
+      const id = rawId ?? feature.id;
       if (id) {
         selectPlace(id as string);
       }

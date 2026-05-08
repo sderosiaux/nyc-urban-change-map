@@ -26,7 +26,7 @@ export interface NarrativeContext {
  * Generate human-readable narratives for a transformation
  */
 export function generateNarratives(context: NarrativeContext): Narratives {
-  const { events, nature, certainty, phases } = context;
+  const { events, certainty, phases } = context;
 
   // Count significant event types
   const counts = countEventTypes(events);

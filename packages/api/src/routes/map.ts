@@ -7,13 +7,7 @@ import { z } from 'zod';
 import { db, places, transformationStates, heatmapCells, rawEvents } from '@ucm/pipeline';
 import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { cellToBoundary } from 'h3-js';
-import type {
-  PlacesGeoJSON,
-  PlaceFeature,
-  HeatmapResponse,
-  TimeMode,
-  Certainty,
-} from '@ucm/shared';
+import type { PlacesGeoJSON, PlaceFeature, HeatmapResponse, Certainty } from '@ucm/shared';
 
 // Query parameter schemas
 const boundsSchema = z.string().regex(/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/);
@@ -32,6 +26,7 @@ const heatmapQuerySchema = z.object({
   resolution: z.coerce.number().min(7).max(10).optional().default(8),
 });
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export const mapRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /map/places - Get places for map rendering
@@ -41,21 +36,26 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
     reply.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const query = placesQuerySchema.parse(request.query);
 
-    // Parse bounds
-    const [swLng, swLat, neLng, neLat] = query.bounds.split(',').map(Number);
+    // Parse bounds (zod validates format so array is always [lng,lat,lng,lat])
+    const [swLng, swLat, neLng, neLat] = query.bounds.split(',').map(Number) as [
+      number,
+      number,
+      number,
+      number,
+    ];
 
     // Build query conditions
     const conditions = [
-      gte(places.longitude, swLng!),
-      lte(places.longitude, neLng!),
-      gte(places.latitude, swLat!),
-      lte(places.latitude, neLat!),
+      gte(places.longitude, swLng),
+      lte(places.longitude, neLng),
+      gte(places.latitude, swLat),
+      lte(places.latitude, neLat),
     ];
 
     // Time-based filtering
     const now = new Date();
-    const nowStr = now.toISOString().split('T')[0]!;
-    const selectedYear = query.year || now.getFullYear();
+    const nowStr = now.toISOString().split('T')[0] as string;
+    const selectedYear = query.year ?? now.getFullYear();
     const yearStart = `${selectedYear}-01-01`;
     const yearEnd = `${selectedYear}-12-31`;
 
@@ -71,7 +71,7 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
         sql`(${transformationStates.disruptionStart} IS NULL OR ${transformationStates.disruptionStart} <= ${nowStr})`,
         sql`(${transformationStates.disruptionEnd} IS NULL OR ${transformationStates.disruptionEnd} >= ${nowStr})`,
       );
-    } else if (query.time_mode === 'future') {
+    } else {
       // Future: show all projects active at or beyond selected year
       // A project ending in 2032 should show when viewing 2030
       conditions.push(
@@ -125,8 +125,8 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       geometry: place.geometryJson as PlaceFeature['geometry'],
       properties: {
         id: place.id,
-        intensity: place.intensity ?? 0,
-        certainty: (place.certainty ?? 'discussion') as Certainty,
+        intensity: place.intensity,
+        certainty: place.certainty as Certainty,
         nature: (place.nature ?? 'mixed') as PlaceFeature['properties']['nature'],
         headline: place.headline ?? 'Transformation en cours',
         hasZap: place.hasZap === 1,
@@ -155,8 +155,13 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
     reply.header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     const query = heatmapQuerySchema.parse(request.query);
 
-    // Parse bounds
-    const [swLng, swLat, neLng, neLat] = query.bounds.split(',').map(Number);
+    // Parse bounds (zod validates format so array is always [lng,lat,lng,lat])
+    const [swLng, swLat, neLng, neLat] = query.bounds.split(',').map(Number) as [
+      number,
+      number,
+      number,
+      number,
+    ];
 
     // Fetch heatmap cells within bounds
     const cells = await db
@@ -164,10 +169,10 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       .from(heatmapCells)
       .where(
         and(
-          gte(heatmapCells.centerLng, swLng!),
-          lte(heatmapCells.centerLng, neLng!),
-          gte(heatmapCells.centerLat, swLat!),
-          lte(heatmapCells.centerLat, neLat!),
+          gte(heatmapCells.centerLng, swLng),
+          lte(heatmapCells.centerLng, neLng),
+          gte(heatmapCells.centerLat, swLat),
+          lte(heatmapCells.centerLat, neLat),
         ),
       );
 
@@ -189,8 +194,8 @@ export const mapRoutes: FastifyPluginAsync = async (fastify) => {
       meta: {
         resolution: query.resolution,
         bounds: {
-          sw: [swLng!, swLat!],
-          ne: [neLng!, neLat!],
+          sw: [swLng, swLat],
+          ne: [neLng, neLat],
         },
       },
     };

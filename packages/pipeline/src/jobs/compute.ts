@@ -3,10 +3,9 @@
  * Calculates transformation states for all places
  */
 
-import { eq, sql } from 'drizzle-orm';
-import { db, places, rawEvents, transformationStates, heatmapCells, closeDatabase } from '../db/index.js';
+import { db, transformationStates, heatmapCells, closeDatabase } from '../db/index.js';
 import { computeTransformationState, toDbInsert } from '../compute/transformation.js';
-import { latLngToCell, cellToBoundary, cellToLatLng } from 'h3-js';
+import { latLngToCell, cellToLatLng } from 'h3-js';
 
 const H3_RESOLUTION = 8; // ~460m hexagons
 
@@ -39,7 +38,8 @@ async function main() {
         const dbState = toDbInsert(state);
 
         // Upsert transformation state
-        await db.insert(transformationStates)
+        await db
+          .insert(transformationStates)
           .values({
             ...dbState,
             computedAt: new Date().toISOString(),
@@ -66,7 +66,6 @@ async function main() {
     await computeHeatmapCells();
 
     console.log('All computations complete.');
-
   } catch (error) {
     console.error('Computation failed:', error);
     throw error;
@@ -87,13 +86,16 @@ async function computeHeatmapCells(): Promise<void> {
   });
 
   // Group by H3 cell
-  const cellData = new Map<string, {
-    intensities: number[];
-    natures: string[];
-    count: number;
-    lat: number;
-    lng: number;
-  }>();
+  const cellData = new Map<
+    string,
+    {
+      intensities: number[];
+      natures: string[];
+      count: number;
+      lat: number;
+      lng: number;
+    }
+  >();
 
   for (const place of placesWithStates) {
     if (!place.latitude || !place.longitude || !place.transformationState) {
@@ -161,7 +163,7 @@ async function computeHeatmapCells(): Promise<void> {
   console.log(`  Inserted ${cellData.size} heatmap cells.`);
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -17,7 +17,7 @@ export default function Tooltip({ content, children, position = 'top' }: Tooltip
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [positioned, setPositioned] = useState(false);
+  const [_positioned, setPositioned] = useState(false);
   const [style, setStyle] = useState<React.CSSProperties>({ visibility: 'hidden' });
 
   // Position tooltip after it renders

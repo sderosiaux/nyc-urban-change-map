@@ -73,7 +73,9 @@ export default function SearchBar() {
           type="text"
           value={query}
           onChange={handleInputChange}
-          onFocus={() => query.length >= 2 && setIsOpen(true)}
+          onFocus={() => {
+            if (query.length >= 2) setIsOpen(true);
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Search places, neighborhoods..."
           className="w-full px-4 py-3 pl-10 bg-white rounded-lg shadow-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-400"

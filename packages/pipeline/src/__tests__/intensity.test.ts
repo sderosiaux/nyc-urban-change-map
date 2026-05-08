@@ -46,7 +46,7 @@ describe('computeIntensity', () => {
   it('should combine different event types', () => {
     const events = [
       createEvent('new_building'), // 50
-      createEvent('demolition'),   // 35
+      createEvent('demolition'), // 35
     ];
     expect(computeIntensity(events)).toBe(85);
   });
@@ -71,8 +71,8 @@ describe('computeIntensity', () => {
 
   it('should cap at MAX_INTENSITY (100)', () => {
     const events = [
-      createEvent('new_building'),     // 50
-      createEvent('demolition'),       // 35
+      createEvent('new_building'), // 50
+      createEvent('demolition'), // 35
       createEvent('major_alteration'), // 30
     ];
     expect(computeIntensity(events)).toBe(100); // Capped at 100

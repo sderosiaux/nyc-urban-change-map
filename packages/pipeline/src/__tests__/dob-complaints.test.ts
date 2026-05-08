@@ -35,7 +35,7 @@ describe('normalizeComplaint', () => {
     expect(result!.address).toBe('123 BROADWAY');
     expect(result!.borough).toBe('Manhattan');
     expect(result!.latitude).toBeCloseTo(40.7128, 4);
-    expect(result!.longitude).toBeCloseTo(-74.0060, 4);
+    expect(result!.longitude).toBeCloseTo(-74.006, 4);
     expect(result!.status).toBe('ACTIVE');
     expect(result!.category).toBe('45');
     expect(result!.zipCode).toBe('10001');

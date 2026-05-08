@@ -32,13 +32,13 @@ describe('Map routes cache headers', () => {
     await fastify.register(sensible);
 
     // Mock /map/places route with cache header
-    fastify.get('/map/places', async (_request, reply) => {
+    fastify.get('/map/places', (_request, reply) => {
       reply.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       return { places: [], total: 0 };
     });
 
     // Mock /map/heatmap route with cache header
-    fastify.get('/map/heatmap', async (_request, reply) => {
+    fastify.get('/map/heatmap', (_request, reply) => {
       reply.header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       return { cells: [] };
     });

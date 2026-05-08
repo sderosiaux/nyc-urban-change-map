@@ -69,7 +69,7 @@ describe('Performance optimization rationale', () => {
 
     // Alternative: deterministic ordering by intensity and certainty
     // This allows query caching and predictable results
-    const orderByWithRandom = 'ORDER BY certainty, intensity DESC, RANDOM()';
+    const _orderByWithRandom = 'ORDER BY certainty, intensity DESC, RANDOM()';
     const orderByOptimized = 'ORDER BY certainty, intensity DESC';
 
     expect(orderByOptimized).not.toContain('RANDOM');
@@ -80,7 +80,7 @@ describe('Performance optimization rationale', () => {
     // SELECT 1 ... LIMIT 1 may evaluate more than needed depending on optimizer
     // EXISTS is also more semantically clear for boolean existence checks
 
-    const subqueryOld = 'SELECT 1 FROM raw_events WHERE ... LIMIT 1';
+    const _subqueryOld = 'SELECT 1 FROM raw_events WHERE ... LIMIT 1';
     const subqueryNew = 'EXISTS(SELECT 1 FROM raw_events WHERE ...)';
 
     expect(subqueryNew).toContain('EXISTS');

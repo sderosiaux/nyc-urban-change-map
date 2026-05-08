@@ -18,7 +18,7 @@ function parseUrlHash(): { viewport?: Partial<Viewport>; placeId?: string } {
   if (typeof window === 'undefined') return {};
 
   const hash = window.location.hash;
-  if (!hash?.startsWith('#@')) return {};
+  if (!hash.startsWith('#@')) return {};
 
   const result: { viewport?: Partial<Viewport>; placeId?: string } = {};
 

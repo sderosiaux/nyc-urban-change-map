@@ -53,12 +53,7 @@
     "spent_total_checkbooknyc": "113844.14",
     "the_geom": {
       "type": "MultiPoint",
-      "coordinates": [
-        [
-          -74.0017824820239,
-          40.712176920360996
-        ]
-      ]
+      "coordinates": [[-74.0017824820239, 40.712176920360996]]
     }
   },
   {
@@ -114,12 +109,7 @@
     "spent_total_checkbooknyc": "0.0",
     "the_geom": {
       "type": "MultiPoint",
-      "coordinates": [
-        [
-          -74.0017824820239,
-          40.712176920360996
-        ]
-      ]
+      "coordinates": [[-74.0017824820239, 40.712176920360996]]
     }
   },
   {
@@ -176,12 +166,7 @@
     "spent_total_checkbooknyc": "0.0",
     "the_geom": {
       "type": "MultiPoint",
-      "coordinates": [
-        [
-          -73.78828749194162,
-          40.59069695725134
-        ]
-      ]
+      "coordinates": [[-73.78828749194162, 40.59069695725134]]
     }
   },
   {
@@ -238,12 +223,7 @@
     "spent_total_checkbooknyc": "11217875.7",
     "the_geom": {
       "type": "MultiPoint",
-      "coordinates": [
-        [
-          -73.97173876791646,
-          40.699207789348094
-        ]
-      ]
+      "coordinates": [[-73.97173876791646, 40.699207789348094]]
     }
   },
   {
@@ -300,12 +280,7 @@
     "spent_total_checkbooknyc": "0.0",
     "the_geom": {
       "type": "MultiPoint",
-      "coordinates": [
-        [
-          -74.00233250754599,
-          40.715666090459294
-        ]
-      ]
+      "coordinates": [[-74.00233250754599, 40.715666090459294]]
     }
   }
 ]

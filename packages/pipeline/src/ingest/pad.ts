@@ -18,24 +18,24 @@ export interface PADRecord {
   block: string;
   lot: string;
   bin: string;
-  lhnd?: string;              // Low house number
-  hhnd?: string;              // High house number
-  stname?: string;            // Street name
-  addrtype?: string;          // Address type
-  validlgcs?: string;         // Valid LGCs
+  lhnd?: string; // Low house number
+  hhnd?: string; // High house number
+  stname?: string; // Street name
+  addrtype?: string; // Address type
+  validlgcs?: string; // Valid LGCs
   pession?: string;
   bession?: string;
-  lzip?: string;              // Low ZIP
-  hzip?: string;              // High ZIP
+  lzip?: string; // Low ZIP
+  hzip?: string; // High ZIP
   bcode?: string;
   session?: string;
-  cd?: string;                // Community District
-  ct10?: string;              // Census Tract 2010
-  cb10?: string;              // Census Block 2010
-  ct20?: string;              // Census Tract 2020
-  cb20?: string;              // Census Block 2020
-  nta?: string;               // NTA code
-  ntaname?: string;           // NTA name
+  cd?: string; // Community District
+  ct10?: string; // Census Tract 2010
+  cb10?: string; // Census Block 2010
+  ct20?: string; // Census Tract 2020
+  cb20?: string; // Census Block 2020
+  nta?: string; // NTA code
+  ntaname?: string; // NTA name
   schooldist?: string;
   policeprct?: string;
   firecomp?: string;
@@ -90,14 +90,14 @@ export async function fetchPADRecords(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pad}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pad}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -107,7 +107,7 @@ export async function fetchPADRecords(options: {
       return [];
     }
 
-    return response.json() as Promise<PADRecord[]>;
+    return (await response.json()) as PADRecord[];
   } catch (error) {
     console.error('Failed to fetch PAD records:', error);
     return [];
@@ -125,7 +125,7 @@ function mapBorough(code: string): string | null {
     '4': 'Queens',
     '5': 'Staten Island',
   };
-  return mapping[code] || null;
+  return mapping[code] ?? null;
 }
 
 /**
@@ -138,7 +138,11 @@ function buildBBL(borough: string, block: string, lot: string): string {
 /**
  * Build address from house numbers and street name
  */
-function buildAddress(lhnd: string | undefined, hhnd: string | undefined, stname: string | undefined): string | null {
+function buildAddress(
+  lhnd: string | undefined,
+  hhnd: string | undefined,
+  stname: string | undefined,
+): string | null {
   if (!stname) return null;
 
   if (lhnd && hhnd && lhnd !== hhnd) {
@@ -166,16 +170,16 @@ export function normalizePAD(record: PADRecord): NormalizedPAD | null {
     bin: record.bin || null,
     borough: mapBorough(record.borough),
     address: buildAddress(record.lhnd, record.hhnd, record.stname),
-    lowHouseNumber: record.lhnd || null,
-    highHouseNumber: record.hhnd || null,
-    streetName: record.stname || null,
-    zipCode: record.lzip || null,
+    lowHouseNumber: record.lhnd ?? null,
+    highHouseNumber: record.hhnd ?? null,
+    streetName: record.stname ?? null,
+    zipCode: record.lzip ?? null,
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    communityDistrict: record.cd || null,
-    ntaCode: record.nta || null,
-    ntaName: record.ntaname || null,
-    censusTract2020: record.ct20 || null,
+    communityDistrict: record.cd ?? null,
+    ntaCode: record.nta ?? null,
+    ntaName: record.ntaname ?? null,
+    censusTract2020: record.ct20 ?? null,
     rawData: record,
   };
 }
@@ -185,7 +189,7 @@ export function normalizePAD(record: PADRecord): NormalizedPAD | null {
  */
 export async function fetchPADByBIN(
   bin: string,
-  options: { appToken?: string } = {}
+  options: { appToken?: string } = {},
 ): Promise<NormalizedPAD | null> {
   const { appToken } = options;
 
@@ -195,14 +199,14 @@ export async function fetchPADByBIN(
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pad}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pad}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -211,12 +215,14 @@ export async function fetchPADByBIN(
       return null;
     }
 
-    const records = await response.json() as PADRecord[];
+    const records = (await response.json()) as PADRecord[];
     if (records.length === 0) {
       return null;
     }
+    const firstRecord = records[0];
+    if (!firstRecord) return null;
 
-    return normalizePAD(records[0]!);
+    return normalizePAD(firstRecord);
   } catch {
     return null;
   }
@@ -227,7 +233,7 @@ export async function fetchPADByBIN(
  */
 export async function fetchPADByBBL(
   bbl: string,
-  options: { appToken?: string } = {}
+  options: { appToken?: string } = {},
 ): Promise<NormalizedPAD[]> {
   const { appToken } = options;
 
@@ -242,14 +248,14 @@ export async function fetchPADByBBL(
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pad}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pad}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -258,10 +264,8 @@ export async function fetchPADByBBL(
       return [];
     }
 
-    const records = await response.json() as PADRecord[];
-    return records
-      .map(r => normalizePAD(r))
-      .filter((r): r is NormalizedPAD => r !== null);
+    const records = (await response.json()) as PADRecord[];
+    return records.map((r) => normalizePAD(r)).filter((r): r is NormalizedPAD => r !== null);
   } catch {
     return [];
   }
@@ -274,19 +278,19 @@ export async function searchPADByAddress(
   houseNumber: string,
   streetName: string,
   borough: string,
-  options: { appToken?: string } = {}
+  options: { appToken?: string } = {},
 ): Promise<NormalizedPAD[]> {
   const { appToken } = options;
 
   // Map borough name to code
   const boroughMapping: Record<string, string> = {
-    'manhattan': '1',
-    'bronx': '2',
-    'brooklyn': '3',
-    'queens': '4',
+    manhattan: '1',
+    bronx: '2',
+    brooklyn: '3',
+    queens: '4',
     'staten island': '5',
   };
-  const boroCode = boroughMapping[borough.toLowerCase()] || borough;
+  const boroCode = boroughMapping[borough.toLowerCase()] ?? borough;
 
   const params = new URLSearchParams({
     $where: `borough = '${boroCode}' AND stname LIKE '%${streetName.toUpperCase()}%' AND (lhnd = '${houseNumber}' OR hhnd = '${houseNumber}')`,
@@ -294,14 +298,14 @@ export async function searchPADByAddress(
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.pad}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.pad}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -310,10 +314,8 @@ export async function searchPADByAddress(
       return [];
     }
 
-    const records = await response.json() as PADRecord[];
-    return records
-      .map(r => normalizePAD(r))
-      .filter((r): r is NormalizedPAD => r !== null);
+    const records = (await response.json()) as PADRecord[];
+    return records.map((r) => normalizePAD(r)).filter((r): r is NormalizedPAD => r !== null);
   } catch {
     return [];
   }

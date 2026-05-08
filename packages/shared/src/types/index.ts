@@ -50,11 +50,11 @@ export const CERTAINTY_DESCRIPTIONS: Record<Certainty, string> = {
 // =============================================================================
 
 export type TransformationNature =
-  | 'densification'    // New buildings, added floors
-  | 'renovation'       // Major alterations, facade work
-  | 'infrastructure'   // Roads, parks, utilities
-  | 'demolition'       // Teardowns
-  | 'mixed';           // Multiple types
+  | 'densification' // New buildings, added floors
+  | 'renovation' // Major alterations, facade work
+  | 'infrastructure' // Roads, parks, utilities
+  | 'demolition' // Teardowns
+  | 'mixed'; // Multiple types
 
 export const NATURE_LABELS: Record<TransformationNature, string> = {
   densification: 'Densification',
@@ -96,11 +96,11 @@ export interface Place {
   id: string;
   geometry: Geometry;
   geometryType: 'point' | 'polygon';
-  bin?: string;                    // Building Identification Number
-  bbl?: string;                    // Borough-Block-Lot
+  bin?: string; // Building Identification Number
+  bbl?: string; // Borough-Block-Lot
   address?: string;
   borough: string;
-  ntaCode?: string;                // Neighborhood Tabulation Area
+  ntaCode?: string; // Neighborhood Tabulation Area
   ntaName?: string;
   communityDistrict?: string;
   createdAt: Date;
@@ -127,14 +127,14 @@ export interface TransformationState {
   placeId: string;
 
   // Core metrics
-  intensity: number;               // 0-100
+  intensity: number; // 0-100
   nature: TransformationNature;
   certainty: Certainty;
 
   // Human-readable narratives
-  headline: string;                // "2 nouveaux immeubles en construction"
-  oneLiner: string;                // "2 immeubles + 1 démolition"
-  disruptionSummary?: string;      // "Perturbations attendues de 2024 à 2027"
+  headline: string; // "2 nouveaux immeubles en construction"
+  oneLiner: string; // "2 immeubles + 1 démolition"
+  disruptionSummary?: string; // "Perturbations attendues de 2024 à 2027"
 
   // Impact phases (when user will feel it)
   phases: ImpactPhases;
@@ -150,7 +150,14 @@ export interface TransformationState {
 // RAW EVENTS (internal, never exposed directly)
 // =============================================================================
 
-export type EventSource = 'dob' | 'dob-now' | 'dob-violations' | 'dob-complaints' | 'zap' | 'capital' | 'ceqr';
+export type EventSource =
+  | 'dob'
+  | 'dob-now'
+  | 'dob-violations'
+  | 'dob-complaints'
+  | 'zap'
+  | 'capital'
+  | 'ceqr';
 
 export type EventType =
   // DOB permit types
@@ -169,10 +176,10 @@ export type EventType =
   | 'zap_filed'
   | 'zap_approved'
   // CEQR types
-  | 'ceqr_eas'           // Environmental Assessment Statement
-  | 'ceqr_eis_draft'     // Draft Environmental Impact Statement
-  | 'ceqr_eis_final'     // Final Environmental Impact Statement
-  | 'ceqr_completed'     // CEQR review completed
+  | 'ceqr_eas' // Environmental Assessment Statement
+  | 'ceqr_eis_draft' // Draft Environmental Impact Statement
+  | 'ceqr_eis_final' // Final Environmental Impact Statement
+  | 'ceqr_completed' // CEQR review completed
   // Other
   | 'capital_project'
   | 'construction_started'
@@ -243,8 +250,8 @@ export interface PlaceDetail {
     isEstimatedStart?: boolean;
     isEstimatedEnd?: boolean;
     // Milestone dates
-    approvalDate?: string;      // ZAP approval date
-    permitExpiration?: string;  // DOB permit expiration
+    approvalDate?: string; // ZAP approval date
+    permitExpiration?: string; // DOB permit expiration
     // Project status
     projectStatus?: ProjectStatus;
     // Activity info
@@ -258,12 +265,12 @@ export interface PlaceDetail {
 
 export interface SourceSummary {
   sourceType: string;
-  sourceId?: string;        // Project ID, Job number, etc.
+  sourceId?: string; // Project ID, Job number, etc.
   description: string;
-  agency?: string;          // Managing agency
-  projectType?: string;     // Category/type
+  agency?: string; // Managing agency
+  projectType?: string; // Category/type
   filedDate?: string;
-  dateLabel?: string;       // "Filed", "Projected start", etc.
+  dateLabel?: string; // "Filed", "Projected start", etc.
   officialUrl?: string;
   // DOB NOW enrichment (fetched from API)
   dobNowDetails?: {
@@ -279,11 +286,11 @@ export interface SourceSummary {
   };
   // DOB Complaint enrichment
   complaintDetails?: {
-    status: string;                    // OPEN, CLOSED
-    category: string;                  // Human-readable category
-    categoryCode: string;              // e.g., "8A", "91"
-    disposition?: string;              // Human-readable disposition
-    dispositionCode?: string;          // e.g., "I2", "AF"
+    status: string; // OPEN, CLOSED
+    category: string; // Human-readable category
+    categoryCode: string; // e.g., "8A", "91"
+    disposition?: string; // Human-readable disposition
+    dispositionCode?: string; // e.g., "I2", "AF"
     inspectionDate?: string;
     dispositionDate?: string;
   };
@@ -291,16 +298,16 @@ export interface SourceSummary {
   zapDetails?: {
     projectName: string;
     projectBrief?: string;
-    publicStatus: string;              // "In Public Review", "Filed", "Complete"
+    publicStatus: string; // "In Public Review", "Filed", "Complete"
     isUlurp: boolean;
-    actions?: string[];                // ["ZM", "ZR", "ZS", "LD"]
-    ulurpNumbers?: string[];           // ["C240271ZMK", "N240272ZRK"]
+    actions?: string[]; // ["ZM", "ZR", "ZS", "LD"]
+    ulurpNumbers?: string[]; // ["C240271ZMK", "N240272ZRK"]
     ceqrNumber?: string;
     currentMilestone?: string;
     currentMilestoneDate?: string;
     certifiedDate?: string;
     applicant?: string;
-    applicantType?: string;            // "Private", "City"
+    applicantType?: string; // "Private", "City"
     communityDistrict?: string;
   };
 }
@@ -312,8 +319,8 @@ export interface SourceSummary {
 export interface PropertyDetails {
   // Identifiers
   bin: string;
-  bbl: string;                      // Derived: {borough}{block:5}{lot:4}
-  borough: number;                  // 1=Manhattan, 2=Bronx, 3=Brooklyn, 4=Queens, 5=Staten Island
+  bbl: string; // Derived: {borough}{block:5}{lot:4}
+  borough: number; // 1=Manhattan, 2=Bronx, 3=Brooklyn, 4=Queens, 5=Staten Island
   taxBlock: number;
   taxLot: number;
 
@@ -321,26 +328,26 @@ export interface PropertyDetails {
   houseNumber?: string;
   streetName?: string;
   zip?: string;
-  crossStreets?: string[];          // Nearby cross streets
+  crossStreets?: string[]; // Nearby cross streets
 
   // Building characteristics
-  occupancy?: string;               // e.g., "F5-Factory/Industrial"
+  occupancy?: string; // e.g., "F5-Factory/Industrial"
   buildingsOnLot?: number;
   vacant?: boolean;
   cityOwned?: boolean;
   condo?: boolean;
 
   // Special designations
-  specialArea?: string;             // e.g., "IBZ - Industrial Business Zone"
+  specialArea?: string; // e.g., "IBZ - Industrial Business Zone"
   specialDistrict?: string;
   landmarkStatus?: string;
-  floodZone?: boolean;              // Special Flood Hazard Area
+  floodZone?: boolean; // Special Flood Hazard Area
   coastalErosion?: boolean;
   freshwaterWetlands?: boolean;
   tidalWetlands?: boolean;
 
   // Regulatory flags
-  sroRestricted?: boolean;          // Single Room Occupancy
+  sroRestricted?: boolean; // Single Room Occupancy
   loftLaw?: boolean;
   antiHarassment?: boolean;
 

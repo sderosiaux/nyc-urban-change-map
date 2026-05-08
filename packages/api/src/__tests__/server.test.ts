@@ -16,7 +16,7 @@ describe('Server configuration', () => {
     await fastify.register(sensible);
 
     // Add a test route
-    fastify.get('/health', async () => ({ status: 'ok' }));
+    fastify.get('/health', () => ({ status: 'ok' }));
 
     await fastify.ready();
   });
@@ -66,17 +66,17 @@ describe('Error handling', () => {
     await fastify.register(sensible);
 
     // Route that throws an error
-    fastify.get('/error', async () => {
+    fastify.get('/error', () => {
       throw new Error('Test error');
     });
 
     // Route that returns not found
-    fastify.get('/notfound', async (_, reply) => {
+    fastify.get('/notfound', (_, reply) => {
       return reply.notFound('Resource not found');
     });
 
     // Route that returns bad request
-    fastify.get('/badrequest', async (_, reply) => {
+    fastify.get('/badrequest', (_, reply) => {
       return reply.badRequest('Invalid parameters');
     });
 
@@ -123,7 +123,7 @@ describe('Content-Type handling', () => {
   beforeAll(async () => {
     fastify = Fastify({ logger: false });
 
-    fastify.get('/json', async () => ({ data: 'test' }));
+    fastify.get('/json', () => ({ data: 'test' }));
 
     await fastify.ready();
   });

@@ -98,7 +98,7 @@ describe('Validation schemas', () => {
         placesQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           time_mode: 'invalid',
-        })
+        }),
       ).toThrow();
     });
 
@@ -107,14 +107,14 @@ describe('Validation schemas', () => {
         placesQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           zoom: '25',
-        })
+        }),
       ).toThrow();
 
       expect(() =>
         placesQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           zoom: '-1',
-        })
+        }),
       ).toThrow();
     });
 
@@ -123,7 +123,7 @@ describe('Validation schemas', () => {
         placesQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           min_intensity: '150',
-        })
+        }),
       ).toThrow();
     });
   });
@@ -152,14 +152,14 @@ describe('Validation schemas', () => {
         heatmapQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           resolution: '5',
-        })
+        }),
       ).toThrow();
 
       expect(() =>
         heatmapQuerySchema.parse({
           bounds: '-74.0,40.7,-73.9,40.8',
           resolution: '12',
-        })
+        }),
       ).toThrow();
     });
   });
@@ -169,7 +169,7 @@ describe('Validation schemas', () => {
       expect(() =>
         placeDetailParamsSchema.parse({
           id: '123e4567-e89b-12d3-a456-426614174000',
-        })
+        }),
       ).not.toThrow();
     });
 
@@ -177,13 +177,13 @@ describe('Validation schemas', () => {
       expect(() =>
         placeDetailParamsSchema.parse({
           id: 'not-a-uuid',
-        })
+        }),
       ).toThrow();
 
       expect(() =>
         placeDetailParamsSchema.parse({
           id: '',
-        })
+        }),
       ).toThrow();
     });
   });
@@ -211,7 +211,7 @@ describe('Validation schemas', () => {
       expect(() =>
         searchQuerySchema.parse({
           q: 'a',
-        })
+        }),
       ).toThrow();
     });
 
@@ -219,7 +219,7 @@ describe('Validation schemas', () => {
       expect(() =>
         searchQuerySchema.parse({
           q: 'a'.repeat(101),
-        })
+        }),
       ).toThrow();
     });
 
@@ -228,14 +228,14 @@ describe('Validation schemas', () => {
         searchQuerySchema.parse({
           q: 'test',
           limit: '100',
-        })
+        }),
       ).toThrow();
 
       expect(() =>
         searchQuerySchema.parse({
           q: 'test',
           limit: '0',
-        })
+        }),
       ).toThrow();
     });
   });

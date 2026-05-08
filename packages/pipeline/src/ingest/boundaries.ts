@@ -25,7 +25,7 @@ export interface GeoJSONGeometry {
 // Handles both old (ntacode) and new (nta2020) API field names
 export interface NTARecord {
   ntacode?: string;
-  nta2020?: string;  // New API field name
+  nta2020?: string; // New API field name
   ntaname: string;
   ntaabbrev?: string;
   ntatype?: string;
@@ -93,9 +93,7 @@ export interface NormalizedBorough {
 /**
  * Fetch NTAs from NYC Open Data
  */
-export async function fetchNTAs(options: {
-  appToken?: string;
-}): Promise<NTARecord[]> {
+export async function fetchNTAs(options: { appToken?: string }): Promise<NTARecord[]> {
   const { appToken } = options;
 
   const params = new URLSearchParams({
@@ -103,14 +101,14 @@ export async function fetchNTAs(options: {
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.ntas}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.ntas}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -120,7 +118,7 @@ export async function fetchNTAs(options: {
       return [];
     }
 
-    return response.json() as Promise<NTARecord[]>;
+    return (await response.json()) as NTARecord[];
   } catch (error) {
     console.error('Failed to fetch NTAs:', error);
     return [];
@@ -132,6 +130,8 @@ export async function fetchNTAs(options: {
  * Handles both old (ntacode) and new (nta2020) API field names
  */
 export function normalizeNTA(record: NTARecord): NormalizedNTA | null {
+  // Use || intentionally: if one code field is empty, try the other
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const ntaCode = record.ntacode || record.nta2020;
   if (!ntaCode || !record.ntaname) {
     return null;
@@ -140,27 +140,23 @@ export function normalizeNTA(record: NTARecord): NormalizedNTA | null {
   return {
     ntaCode,
     ntaName: record.ntaname,
-    abbreviation: record.ntaabbrev || null,
-    type: record.ntatype || null,
-    boroCode: record.borocode || null,
-    boroName: record.boroname || null,
-    cdtaCode: record.cdta2020 || null,
-    cdtaName: record.cdtaname || null,
+    abbreviation: record.ntaabbrev ?? null,
+    type: record.ntatype ?? null,
+    boroCode: record.borocode ?? null,
+    boroName: record.boroname ?? null,
+    cdtaCode: record.cdta2020 ?? null,
+    cdtaName: record.cdtaname ?? null,
     shapeArea: record.shape_area ? parseFloat(record.shape_area) : null,
-    geometry: record.the_geom || null,
+    geometry: record.the_geom ?? null,
   };
 }
 
 /**
  * Fetch all NTAs
  */
-export async function fetchAllNTAs(options: {
-  appToken?: string;
-}): Promise<NormalizedNTA[]> {
+export async function fetchAllNTAs(options: { appToken?: string }): Promise<NormalizedNTA[]> {
   const records = await fetchNTAs(options);
-  return records
-    .map(r => normalizeNTA(r))
-    .filter((r): r is NormalizedNTA => r !== null);
+  return records.map((r) => normalizeNTA(r)).filter((r): r is NormalizedNTA => r !== null);
 }
 
 // =============================================================================
@@ -180,14 +176,14 @@ export async function fetchCommunityDistricts(options: {
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.communityDistricts}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.communityDistricts}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -197,7 +193,7 @@ export async function fetchCommunityDistricts(options: {
       return [];
     }
 
-    return response.json() as Promise<CommunityDistrictRecord[]>;
+    return (await response.json()) as CommunityDistrictRecord[];
   } catch (error) {
     console.error('Failed to fetch Community Districts:', error);
     return [];
@@ -215,13 +211,15 @@ function mapBorough(code: string): string | null {
     '4': 'Queens',
     '5': 'Staten Island',
   };
-  return mapping[code] || null;
+  return mapping[code] ?? null;
 }
 
 /**
  * Normalize a Community District record
  */
-export function normalizeCommunityDistrict(record: CommunityDistrictRecord): NormalizedCommunityDistrict | null {
+export function normalizeCommunityDistrict(
+  record: CommunityDistrictRecord,
+): NormalizedCommunityDistrict | null {
   if (!record.boro_cd) {
     return null;
   }
@@ -237,7 +235,7 @@ export function normalizeCommunityDistrict(record: CommunityDistrictRecord): Nor
     boroName,
     displayName: boroName ? `${boroName} CD ${parseInt(districtNumber, 10)}` : record.boro_cd,
     shapeArea: record.shape_area ? parseFloat(record.shape_area) : null,
-    geometry: record.the_geom || null,
+    geometry: record.the_geom ?? null,
   };
 }
 
@@ -249,7 +247,7 @@ export async function fetchAllCommunityDistricts(options: {
 }): Promise<NormalizedCommunityDistrict[]> {
   const records = await fetchCommunityDistricts(options);
   return records
-    .map(r => normalizeCommunityDistrict(r))
+    .map((r) => normalizeCommunityDistrict(r))
     .filter((r): r is NormalizedCommunityDistrict => r !== null);
 }
 
@@ -260,9 +258,7 @@ export async function fetchAllCommunityDistricts(options: {
 /**
  * Fetch Boroughs from NYC Open Data
  */
-export async function fetchBoroughs(options: {
-  appToken?: string;
-}): Promise<BoroughRecord[]> {
+export async function fetchBoroughs(options: { appToken?: string }): Promise<BoroughRecord[]> {
   const { appToken } = options;
 
   const params = new URLSearchParams({
@@ -270,14 +266,14 @@ export async function fetchBoroughs(options: {
   });
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.boroughs}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.boroughs}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -287,7 +283,7 @@ export async function fetchBoroughs(options: {
       return [];
     }
 
-    return response.json() as Promise<BoroughRecord[]>;
+    return (await response.json()) as BoroughRecord[];
   } catch (error) {
     console.error('Failed to fetch Boroughs:', error);
     return [];
@@ -306,7 +302,7 @@ export function normalizeBorough(record: BoroughRecord): NormalizedBorough | nul
     boroCode: record.boro_code,
     boroName: record.boro_name,
     shapeArea: record.shape_area ? parseFloat(record.shape_area) : null,
-    geometry: record.the_geom || null,
+    geometry: record.the_geom ?? null,
   };
 }
 
@@ -317,9 +313,7 @@ export async function fetchAllBoroughs(options: {
   appToken?: string;
 }): Promise<NormalizedBorough[]> {
   const records = await fetchBoroughs(options);
-  return records
-    .map(r => normalizeBorough(r))
-    .filter((r): r is NormalizedBorough => r !== null);
+  return records.map((r) => normalizeBorough(r)).filter((r): r is NormalizedBorough => r !== null);
 }
 
 // =============================================================================
@@ -335,9 +329,7 @@ export interface AllBoundaries {
 /**
  * Fetch all boundary types
  */
-export async function fetchAllBoundaries(options: {
-  appToken?: string;
-}): Promise<AllBoundaries> {
+export async function fetchAllBoundaries(options: { appToken?: string }): Promise<AllBoundaries> {
   const [ntas, communityDistricts, boroughs] = await Promise.all([
     fetchAllNTAs(options),
     fetchAllCommunityDistricts(options),

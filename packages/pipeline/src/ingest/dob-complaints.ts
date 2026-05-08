@@ -88,14 +88,14 @@ export async function fetchDOBComplaints(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.dobComplaints}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.dobComplaints}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -105,7 +105,7 @@ export async function fetchDOBComplaints(options: {
       return [];
     }
 
-    return response.json() as Promise<DOBComplaint[]>;
+    return (await response.json()) as DOBComplaint[];
   } catch (error) {
     console.error('Failed to fetch DOB complaints:', error);
     return [];
@@ -119,13 +119,13 @@ function mapBorough(borough: string | undefined): string | null {
   if (!borough) return null;
 
   const mapping: Record<string, string> = {
-    'MANHATTAN': 'Manhattan',
-    'BRONX': 'Bronx',
-    'BROOKLYN': 'Brooklyn',
-    'QUEENS': 'Queens',
+    MANHATTAN: 'Manhattan',
+    BRONX: 'Bronx',
+    BROOKLYN: 'Brooklyn',
+    QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
   };
-  return mapping[borough.toUpperCase()] || null;
+  return mapping[borough.toUpperCase()] ?? null;
 }
 
 /**
@@ -151,9 +151,10 @@ export function normalizeComplaint(complaint: DOBComplaint): NormalizedComplaint
   }
 
   // Build address
-  const address = complaint.house_number && complaint.house_street
-    ? `${complaint.house_number} ${complaint.house_street}`.trim()
-    : null;
+  const address =
+    complaint.house_number && complaint.house_street
+      ? `${complaint.house_number} ${complaint.house_street}`.trim()
+      : null;
 
   // Parse coordinates
   const latitude = complaint.latitude ? parseFloat(complaint.latitude) : null;
@@ -162,19 +163,19 @@ export function normalizeComplaint(complaint: DOBComplaint): NormalizedComplaint
   return {
     source: 'dob-complaints',
     sourceId: complaint.complaint_number,
-    bin: complaint.bin || null,
+    bin: complaint.bin ?? null,
     address,
     borough: mapBorough(complaint.borough),
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    ntaCode: complaint.nta || null,
-    communityDistrict: complaint.community_board || null,
-    zipCode: complaint.zip_code || null,
+    ntaCode: complaint.nta ?? null,
+    communityDistrict: complaint.community_board ?? null,
+    zipCode: complaint.zip_code ?? null,
     dateEntered,
     status: complaint.status,
-    category: complaint.complaint_category || null,
+    category: complaint.complaint_category ?? null,
     dispositionDate: parseDate(complaint.disposition_date),
-    dispositionCode: complaint.disposition_code || null,
+    dispositionCode: complaint.disposition_code ?? null,
     inspectionDate: parseDate(complaint.inspection_date),
     rawData: complaint,
   };
@@ -185,7 +186,7 @@ export function normalizeComplaint(complaint: DOBComplaint): NormalizedComplaint
  */
 export async function fetchAllComplaintsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedComplaint[]> {
   const { appToken, onProgress } = options;
   const batchSize = 10000;
@@ -215,7 +216,7 @@ export async function fetchAllComplaintsSince(
       hasMore = false;
     } else {
       offset += batchSize;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

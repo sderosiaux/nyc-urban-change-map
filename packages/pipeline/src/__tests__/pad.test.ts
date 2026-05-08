@@ -40,7 +40,7 @@ describe('normalizePAD', () => {
     expect(result!.ntaName).toBe('Midtown-Midtown South');
     expect(result!.censusTract2020).toBe('001234');
     expect(result!.latitude).toBeCloseTo(40.7128, 4);
-    expect(result!.longitude).toBeCloseTo(-74.0060, 4);
+    expect(result!.longitude).toBeCloseTo(-74.006, 4);
   });
 
   it('should build address with single house number', () => {

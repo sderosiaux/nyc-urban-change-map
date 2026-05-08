@@ -71,8 +71,15 @@ export interface NormalizedZAPEvent {
 // STATUS MAPPING
 // =============================================================================
 
-const TRACKED_STATUSES = ['Filed', 'Complete', 'Completed', 'Approved', 'Active', 'Denied'] as const;
-type TrackedStatus = typeof TRACKED_STATUSES[number];
+const _TRACKED_STATUSES = [
+  'Filed',
+  'Complete',
+  'Completed',
+  'Approved',
+  'Active',
+  'Denied',
+] as const;
+type _TrackedStatus = (typeof _TRACKED_STATUSES)[number];
 
 /**
  * Map ZAP action type and status to our event type
@@ -80,7 +87,7 @@ type TrackedStatus = typeof TRACKED_STATUSES[number];
  */
 export function mapZAPActionToEventType(
   ulurpType: string | undefined,
-  publicStatus: string
+  publicStatus: string,
 ): EventType {
   const isULURP = ulurpType === 'ULURP';
 
@@ -113,15 +120,15 @@ function mapBorough(borough?: string): string | null {
   if (!borough) return null;
 
   const mapping: Record<string, string> = {
-    'MN': 'Manhattan',
-    'BX': 'Bronx',
-    'BK': 'Brooklyn',
-    'QN': 'Queens',
-    'SI': 'Staten Island',
-    'Manhattan': 'Manhattan',
-    'Bronx': 'Bronx',
-    'Brooklyn': 'Brooklyn',
-    'Queens': 'Queens',
+    MN: 'Manhattan',
+    BX: 'Bronx',
+    BK: 'Brooklyn',
+    QN: 'Queens',
+    SI: 'Staten Island',
+    Manhattan: 'Manhattan',
+    Bronx: 'Bronx',
+    Brooklyn: 'Brooklyn',
+    Queens: 'Queens',
     'Staten Island': 'Staten Island',
   };
 
@@ -140,12 +147,11 @@ export function normalizeZAPProject(project: ZAPProject): NormalizedZAPEvent | n
 
   // Determine event type from status
   const eventType = mapZAPActionToEventType(project.ulurp_non, project.public_status);
-  if (!eventType) {
-    return null; // Status not tracked
-  }
 
   // Parse date - use certified_referred, app_filed_date, or fallback to current date
   let eventDate: Date;
+  // Use || intentionally: empty string means no date, try next
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const dateStr = project.certified_referred || project.app_filed_date;
   if (dateStr) {
     eventDate = new Date(dateStr);
@@ -201,14 +207,14 @@ export async function fetchZAPProjects(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.zapProjects}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.zapProjects}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -218,7 +224,7 @@ export async function fetchZAPProjects(options: {
       return [];
     }
 
-    return response.json() as Promise<ZAPProject[]>;
+    return (await response.json()) as ZAPProject[];
   } catch (error) {
     console.error('Failed to fetch ZAP projects:', error);
     return [];
@@ -246,14 +252,14 @@ export async function fetchZAPBbls(options: {
   }
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   };
 
   if (appToken) {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.zapBbl}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.zapBbl}?${params.toString()}`;
 
   try {
     const response = await fetch(url, { headers });
@@ -263,7 +269,7 @@ export async function fetchZAPBbls(options: {
       return [];
     }
 
-    return response.json() as Promise<ZAPBblRecord[]>;
+    return (await response.json()) as ZAPBblRecord[];
   } catch (error) {
     console.error('Failed to fetch ZAP BBLs:', error);
     return [];
@@ -276,7 +282,7 @@ export async function fetchZAPBbls(options: {
  */
 export async function getZAPProjectCoordinates(
   projectId: string,
-  options: { appToken?: string } = {}
+  options: { appToken?: string } = {},
 ): Promise<{ latitude: number; longitude: number; bbl: string } | null> {
   const { appToken } = options;
 
@@ -293,7 +299,7 @@ export async function getZAPProjectCoordinates(
 
     const pluto = await fetchPLUTOByBBL(bblRecord.bbl, { appToken });
 
-    if (pluto?.latitude && pluto?.longitude) {
+    if (pluto?.latitude && pluto.longitude) {
       return {
         latitude: pluto.latitude,
         longitude: pluto.longitude,
@@ -302,7 +308,7 @@ export async function getZAPProjectCoordinates(
     }
 
     // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   return null;
@@ -313,7 +319,7 @@ export async function getZAPProjectCoordinates(
  */
 export async function fetchAllZAPProjectsSince(
   sinceDate: Date,
-  options: { appToken?: string; onProgress?: (count: number) => void } = {}
+  options: { appToken?: string; onProgress?: (count: number) => void } = {},
 ): Promise<NormalizedZAPEvent[]> {
   const { appToken, onProgress } = options;
   const batchSize = 1000;
@@ -347,7 +353,7 @@ export async function fetchAllZAPProjectsSince(
       offset += batchSize;
 
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 
@@ -364,7 +370,7 @@ export async function enrichZAPEventsWithCoordinates(
     appToken?: string;
     onProgress?: (current: number, total: number) => void;
     concurrency?: number;
-  } = {}
+  } = {},
 ): Promise<NormalizedZAPEvent[]> {
   const { appToken, onProgress, concurrency = 5 } = options;
   const enriched: NormalizedZAPEvent[] = [];
@@ -391,7 +397,7 @@ export async function enrichZAPEventsWithCoordinates(
         }
 
         return event;
-      })
+      }),
     );
 
     enriched.push(...enrichedBatch);
@@ -399,7 +405,7 @@ export async function enrichZAPEventsWithCoordinates(
 
     // Small delay between batches
     if (i + concurrency < events.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
@@ -415,7 +421,7 @@ export async function fetchAllZAPProjectsWithCoordinates(
   options: {
     appToken?: string;
     onProgress?: (message: string) => void;
-  } = {}
+  } = {},
 ): Promise<NormalizedZAPEvent[]> {
   const { appToken, onProgress } = options;
 
@@ -439,7 +445,7 @@ export async function fetchAllZAPProjectsWithCoordinates(
   });
 
   // Count how many got coordinates
-  const withCoords = enriched.filter(e => e.latitude && e.longitude).length;
+  const withCoords = enriched.filter((e) => e.latitude && e.longitude).length;
   onProgress?.(`Done! ${withCoords}/${events.length} projects have coordinates.`);
 
   return enriched;

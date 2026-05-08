@@ -93,7 +93,7 @@ export async function fetchDOBViolations(options: {
     headers['X-App-Token'] = appToken;
   }
 
-  const url = `${NYC_DATA_ENDPOINTS.dobViolations}?${params}`;
+  const url = `${NYC_DATA_ENDPOINTS.dobViolations}?${params.toString()}`;
 
   try {
     // Add timeout to prevent hanging on slow responses
@@ -113,7 +113,7 @@ export async function fetchDOBViolations(options: {
       return [];
     }
 
-    return response.json() as Promise<DOBViolation[]>;
+    return (await response.json()) as DOBViolation[];
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.error('DOB Violations fetch timed out after 2 minutes');
@@ -140,7 +140,7 @@ function mapBorough(code: string): string | null {
     QUEENS: 'Queens',
     'STATEN ISLAND': 'Staten Island',
   };
-  return mapping[code?.toUpperCase()] || null;
+  return mapping[code.toUpperCase()] ?? null;
 }
 
 /**
@@ -196,18 +196,18 @@ export function normalizeViolation(violation: DOBViolation): NormalizedViolation
   return {
     source: 'dob-violations',
     sourceId: violation.isn_dob_bis_viol,
-    bin: violation.bin || null,
+    bin: violation.bin ?? null,
     bbl,
     address,
     borough: mapBorough(violation.boro),
     latitude: latitude && !isNaN(latitude) ? latitude : null,
     longitude: longitude && !isNaN(longitude) ? longitude : null,
-    ntaCode: violation.nta || null,
-    communityDistrict: violation.community_board || null,
+    ntaCode: violation.nta ?? null,
+    communityDistrict: violation.community_board ?? null,
     issueDate,
-    violationType: violation.violation_type || null,
-    violationCategory: violation.violation_category || null,
-    description: violation.description || null,
+    violationType: violation.violation_type ?? null,
+    violationCategory: violation.violation_category ?? null,
+    description: violation.description ?? null,
     isECB: !!violation.ecb_number,
     rawData: violation,
   };

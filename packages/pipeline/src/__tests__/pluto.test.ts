@@ -82,7 +82,7 @@ describe('normalizePLUTO', () => {
     expect(result!.isHistoricDistrict).toBe(true);
     expect(result!.isLandmark).toBe(true);
     expect(result!.latitude).toBeCloseTo(40.7128, 4);
-    expect(result!.longitude).toBeCloseTo(-74.0060, 4);
+    expect(result!.longitude).toBeCloseTo(-74.006, 4);
   });
 
   it('should return null when BBL is missing', () => {
