@@ -35,6 +35,7 @@
 | M5  | **Economic Layer**           | Property values, sales, taxes                  | P2       | Medium      |
 | M6  | **Unified Quality Score**    | Combine all layers into single score           | P2       | Medium      |
 | M7  | **UI Layer Controls**        | Toggle layers, customize weights               | P2       | Medium      |
+| M8  | **Restaurant Health Layer**  | NYC DOHMH inspections (ABCEats), grades/scores | P3       | Medium      |
 
 ---
 
@@ -910,6 +911,30 @@ Task 7.4: Implement "Find Best" algorithm
 Task 7.5: Add comparison mode UI
 Task 7.6: Create shareable URL with settings
 ```
+
+---
+
+# Milestone 8: Restaurant Health Layer (Backlog)
+
+## Objective
+
+Show NYC DOHMH restaurant inspection grades/violations per address — adds a "neighborhood food safety" dimension and per-venue detail (useful overlay when clicking on a building that hosts food establishments).
+
+## Reference
+
+- Public UI: https://a816-health.nyc.gov/ABCEatsRestaurants/#!/Search/50131242 (CAMIS=50131242 example)
+- NYC Open Data datasets (DOHMH Restaurant Inspection Results): `43nn-pn8j` — score, grade (A/B/C), violation_code, inspection_date, cuisine, lat/lon, BIN/BBL when joinable
+
+## Ideas to explore
+
+- Per-place panel: latest grade, violation history, critical vs non-critical, re-inspection timeline
+- H3 heatmap: % A-grades, avg score, repeat-offender density
+- Join to PLUTO via BIN/BBL → attach to building card alongside HPD violations
+- Deep-link out to ABCEats UI by CAMIS (`/Search/{camis}`) from the venue card
+
+## Status
+
+Backlog — defer until M1–M4 are live. Not a quality-of-life primary signal, but a strong "is this block alive / well-maintained" secondary signal.
 
 ---
 
